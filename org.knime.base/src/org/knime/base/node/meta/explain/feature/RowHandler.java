@@ -44,54 +44,28 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.feature;
 
+import org.knime.base.node.meta.explain.util.iter.IntIterator;
 import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+public interface RowHandler {
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setOriginal(final DataCell cell);
+    void setOriginal(final Iterable<DataCell> original);
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setSampled(final DataCell cell);
+    void setReplacement(final Iterable<DataCell> replacement);
 
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
+    void setReplacementIndices(final IntIterator replacementIndices);
 
-    /**
-     *
-     */
-    void reset();
+    void resetReplacementIndices();
 
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
+    int getExpectedNumberOfCells();
 
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
+    Iterable<DataCell> createReplaced();
 }

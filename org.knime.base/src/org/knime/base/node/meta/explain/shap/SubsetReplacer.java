@@ -44,54 +44,51 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.feature;
+package org.knime.base.node.meta.explain.shap;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.knime.base.node.meta.explain.feature.RowHandler;
 import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
+import org.knime.core.data.DataRow;
+import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+final class SubsetReplacer {
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setOriginal(final DataCell cell);
+    private final Iterable<DataRow> m_samplingSet;
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setSampled(final DataCell cell);
+    private final RowHandler m_rowHandler;
 
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
+    SubsetReplacer(final Iterable<DataRow> samplingSet, final RowHandler rowHandler) {
+        Iterator<DataRow> iter = samplingSet.iterator();
+        CheckUtils.checkArgument(iter.hasNext(), "The sampling set must contain at least one row.");
+        CheckUtils.checkArgument(iter.next().getNumCells() == rowHandler.getExpectedNumberOfCells(),
+            "The number of cells in the sampling rows must match the number of feature handlers.");
+        m_samplingSet = samplingSet;
+        m_rowHandler = rowHandler;
+    }
 
-    /**
-     *
-     */
-    void reset();
+    Iterable<Iterable<DataCell>> replace(final DataRow roi, final Mask mask) {
+        CheckUtils.checkArgument(roi.getNumCells() == m_rowHandler.getExpectedNumberOfCells(),
+            "The roi has %s cells but %s were expected.", roi.getNumCells(), m_rowHandler.getExpectedNumberOfCells());
+        final List<Iterable<DataCell>> samples = new ArrayList<>();
+        m_rowHandler.setOriginal(roi);
+        m_rowHandler.resetReplacementIndices();
+        m_rowHandler.setReplacementIndices(mask.iterator());
+        for (final DataRow sampleRow : m_samplingSet) {
+            m_rowHandler.setReplacement(sampleRow);
+            samples.add(m_rowHandler.createReplaced());
+        }
+        // TODO check if we can also implement this lazily
+        return samples;
+    }
 
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
-
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
 }

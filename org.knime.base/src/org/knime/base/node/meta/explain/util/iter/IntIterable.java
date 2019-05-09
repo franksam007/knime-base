@@ -44,54 +44,19 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.feature;
-
-import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
+package org.knime.base.node.meta.explain.util.iter;
 
 /**
+ * An {@link Iterable} for primitive int values.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+public interface IntIterable {
 
     /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
+     * @return an {@link IntIterator iterator} of primitive int values
      */
-    void setOriginal(final DataCell cell);
-
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setSampled(final DataCell cell);
-
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
-
-    /**
-     *
-     */
-    void reset();
-
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
-
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
+    IntIterator iterator();
 }

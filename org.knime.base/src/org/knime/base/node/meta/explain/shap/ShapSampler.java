@@ -1,0 +1,216 @@
+/*
+ * ------------------------------------------------------------------------
+ *
+ *  Copyright by KNIME AG, Zurich, Switzerland
+ *  Website: http://www.knime.com; Email: contact@knime.com
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License, Version 3, as
+ *  published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses>.
+ *
+ *  Additional permission under GNU GPL version 3 section 7:
+ *
+ *  KNIME interoperates with ECLIPSE solely via ECLIPSE's plug-in APIs.
+ *  Hence, KNIME and ECLIPSE are both independent programs and are not
+ *  derived from each other. Should, however, the interpretation of the
+ *  GNU GPL Version 3 ("License") under any applicable laws result in
+ *  KNIME and ECLIPSE being a combined program, KNIME AG herewith grants
+ *  you the additional permission to use and propagate KNIME together with
+ *  ECLIPSE with only the license terms in place for ECLIPSE applying to
+ *  ECLIPSE and the GNU GPL Version 3 applying for KNIME, provided the
+ *  license terms of ECLIPSE themselves allow for the respective use and
+ *  propagation of ECLIPSE together with KNIME.
+ *
+ *  Additional permission relating to nodes for KNIME that extend the Node
+ *  Extension (and in particular that are based on subclasses of NodeModel,
+ *  NodeDialog, and NodeView) and that only interoperate with KNIME through
+ *  standard APIs ("Nodes"):
+ *  Nodes are deemed to be separate and independent programs and to not be
+ *  covered works.  Notwithstanding anything to the contrary in the
+ *  License, the License does not apply to Nodes, you are not required to
+ *  license Nodes under the License, and you are granted a license to
+ *  prepare and propagate Nodes, in each case even if such Nodes are
+ *  propagated with or for interoperation with KNIME.  The owner of a Node
+ *  may freely choose the license terms applicable to such Node, including
+ *  when such Node is propagated with or for interoperation with KNIME.
+ * ---------------------------------------------------------------------
+ *
+ * History
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ */
+package org.knime.base.node.meta.explain.shap;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution;
+import org.apache.commons.math3.random.RandomDataGenerator;
+import org.apache.commons.math3.util.CombinatoricsUtils;
+import org.knime.core.data.DataRow;
+
+/**
+ *
+ * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+ */
+final class ShapSampler {
+
+    private final SubsetReplacer m_subsetReplacer;
+
+    private final int m_numSubsetSamples;
+
+    private final int m_numFeatures;
+
+    ShapSampler(final SubsetReplacer subsetSampler, final int numSubSetSamples, final int numFeatures) {
+        m_numSubsetSamples = numSubSetSamples;
+        m_numFeatures = numFeatures;
+        m_subsetReplacer = subsetSampler;
+    }
+
+    Collection<ShapSample> createSamples(final DataRow roi) {
+        final List<ShapSample> samples = new ArrayList<>();
+        final WeightVector weightVector = new WeightVector(m_numFeatures);
+        final SubsetEnumerator subsetEnumerator = new SubsetEnumerator(roi, weightVector);
+        subsetEnumerator.enumerateSubsets(samples::add);
+
+        return null;
+    }
+
+    private final class SubsetSampler {
+        private final DataRow m_roi;
+
+        private final EnumeratedIntegerDistribution m_sizeSampler;
+
+        private final RandomDataGenerator m_rdg;
+
+        private final int m_numFixedSamples;
+
+        private final double m_weightLeft;
+
+        private int m_samplesLeft;
+
+        SubsetSampler(final DataRow roi, final WeightVector weightVector, final int numFixedSamples,
+            final RandomDataGenerator rdg) {
+            m_samplesLeft = m_numSubsetSamples - numFixedSamples;
+            m_numFixedSamples = numFixedSamples;
+            m_roi = roi;
+            final int[] leftSubsetSizes = increasingArray(numFixedSamples, weightVector.getNumSubsetSizes());
+            m_weightLeft = weightVector.getWeightLeft(numFixedSamples);
+            // TODO extract rdg and size sampler into a separate class
+            m_rdg = rdg;
+            m_sizeSampler = new EnumeratedIntegerDistribution(rdg.getRandomGenerator(), leftSubsetSizes,
+                weightVector.getTailDistribution(numFixedSamples));
+        }
+
+        private int[] sampleSubset() {
+            final int size = m_sizeSampler.sample();
+            return m_rdg.nextPermutation(m_numFeatures, size);
+        }
+
+        void sampleSubsets(final Consumer<ShapSample> sink) {
+            // TODO verify that we can safely use int[] as key i.e. it has a valid hashCode implementation
+            final Map<int[], ShapSample> usedMasks = new HashMap<>();
+            while (m_samplesLeft > 0) {
+                final int[] subset = sampleSubset();
+                ShapSample sample = usedMasks.get(subset);
+                boolean newSample = false;
+                if (sample == null) {
+                    newSample = true;
+                    final Mask mask = DefaultMask.createMask(subset, m_numFeatures);
+                    sample = new ShapSample(mask, 1.0, m_subsetReplacer.replace(m_roi, mask));
+                    usedMasks.put(subset, sample);
+                    // TODO continue implementation
+                } else {
+                    sample.setWeight(sample.getWeight() + 1.0);
+                }
+            }
+        }
+
+    }
+
+    private static int[] increasingArray(final int from, final int to) {
+        final int[] array = new int[to - from];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = i + from;
+        }
+        return array;
+    }
+
+    private final class SubsetEnumerator {
+        private final DataRow m_roi;
+
+        private final WeightVector m_weightVector;
+
+        private int m_numFullSubsetSizes = 0;
+
+        private int m_subsetsAdded = 0;
+
+        private int m_numSamplesLeft = m_numSubsetSamples;
+
+        SubsetEnumerator(final DataRow roi, final WeightVector weightVector) {
+            // TODO maybe we can also create the weight vector here
+            m_roi = roi;
+            m_weightVector = weightVector;
+        }
+
+        void enumerateSubsets(final Consumer<ShapSample> sink) {
+            for (int subsetSize = 1; subsetSize < m_weightVector.getNumSubsetSizes(); subsetSize++) {
+                long numSubsets = CombinatoricsUtils.binomialCoefficient(m_numFeatures, subsetSize);
+                boolean isPaired = m_weightVector.isPairedSubsetSize(subsetSize);
+                if (isPaired) {
+                    numSubsets *= 2;
+                }
+                if (m_numSamplesLeft * m_weightVector.getScaled(subsetSize) / numSubsets >= 1.0 - 1e-8) {
+                    m_numFullSubsetSizes++;
+                    m_numSamplesLeft -= numSubsets;
+                    m_subsetsAdded += numSubsets;
+                    if (m_weightVector.getScaled(subsetSize) < 1.0) {
+                        // TODO check if this is numerically stable.. Maybe this can also happen inside of WeightVector
+                        m_weightVector.rescale(1.0 / 1.0 - m_weightVector.getScaled(subsetSize));
+                    }
+                    final double weight = m_weightVector.get(subsetSize) / numSubsets;
+                    addAllSubsets(sink, subsetSize, isPaired, weight);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        private void addAllSubsets(final Consumer<ShapSample> sink, final int subsetSize, final boolean isPaired,
+            final double weight) {
+            final Iterator<Mask> masks = DefaultMask.createMaskIterator(m_numFeatures, subsetSize);
+            while (masks.hasNext()) {
+                final Mask mask = masks.next();
+                final ShapSample sample = new ShapSample(mask, weight, m_subsetReplacer.replace(m_roi, mask));
+                sink.accept(sample);
+                if (isPaired) {
+                    final Mask complementMask = mask.getComplement();
+                    final ShapSample complement =
+                        new ShapSample(complementMask, weight, m_subsetReplacer.replace(m_roi, complementMask));
+                    sink.accept(complement);
+                }
+            }
+        }
+
+        int getNumSamplesLeft() {
+            return m_numSamplesLeft;
+        }
+
+        int getNumFullSubsetSizes() {
+            return m_numFullSubsetSizes;
+        }
+    }
+
+}

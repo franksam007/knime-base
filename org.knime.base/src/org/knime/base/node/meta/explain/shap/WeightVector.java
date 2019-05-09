@@ -44,54 +44,93 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 8, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.feature;
-
-import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
+package org.knime.base.node.meta.explain.shap;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+final class WeightVector {
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setOriginal(final DataCell cell);
+    private final double[] m_weights;
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setSampled(final DataCell cell);
+    private double m_scaler = 1.0;
 
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
+    WeightVector(final int numFeatures) {
+        m_weights = createWeights(numFeatures);
+    }
 
-    /**
-     *
-     */
-    void reset();
+    private static double[] createWeights(final int numFeatures) {
+        final int featuresMinus1 = numFeatures - 1;
+        final int numSubsetSizes = (int)Math.ceil((numFeatures - 1) / 2.0);
+        final int numPairedSubsetSizes = (int)Math.floor((numFeatures - 1) / 2.0);
+        final double[] weights = new double[numSubsetSizes];
+        double weightSum = 0.0;
+        for (int i = 0; i < weights.length; i++) {
+            final int currentSubsetSize = i + 1;
+            int weight = featuresMinus1 / (currentSubsetSize * (numFeatures - currentSubsetSize));
+            if (i < numPairedSubsetSizes) {
+                weight *= 2;
+            }
+            weightSum += weight;
+            weights[i] = weight;
+        }
+        assert weightSum > 0.0;
+        for (int i = 0; i < weights.length; i++) {
+            weights[i] /= weightSum;
+        }
+        return weights;
+    }
 
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
+    double getScaled(final int subsetSize) {
+        return get(subsetSize) * m_scaler;
+    }
 
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
+    double get(final int subsetSize) {
+        final int idx = subsetSize - 1;
+        final double weight = m_weights[idx];
+        return isPairedSubsetSize(subsetSize) ? weight / 2 : weight;
+    }
+
+    double[] getTailDistribution(final int from) {
+        final double[] probs = new double[m_weights.length - from];
+        double sum = 0.0;
+        for (int i = 0; i < m_weights.length - from; i++) {
+            final int subsetSize = from + i + 1;
+            final double val = get(subsetSize);
+            sum += val;
+            probs[i] = val;
+        }
+        for (int i = 0; i < probs.length; i++) {
+            probs[i] /= sum;
+        }
+        return probs;
+    }
+
+    double getWeightLeft(final int from) {
+        double sum = 0.0;
+        for (int i = from; i < m_weights.length; i++) {
+            sum += m_weights[i];
+        }
+        return sum;
+    }
+
+    boolean isPairedSubsetSize(final int subsetSize) {
+        return m_weights.length % 2 == 0 ? true : subsetSize < m_weights.length;
+    }
+
+    int getNumSubsetSizes() {
+        return m_weights.length;
+    }
+
+    void rescale(final double scaler) {
+        m_scaler *= scaler;
+    }
+
+    void resetScale() {
+        m_scaler = 1.0;
+    }
+
 }

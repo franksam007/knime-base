@@ -44,54 +44,44 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.feature;
+package org.knime.base.node.meta.explain.util.iter;
 
-import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
+import java.util.NoSuchElementException;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+final class ArrayIntIterator implements IntIterator {
+
+    private final int[] m_source;
+
+    private int m_idx = -1;
+
+    ArrayIntIterator(final int[] source) {
+        m_source = source;
+    }
 
     /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
+     * {@inheritDoc}
      */
-    void setOriginal(final DataCell cell);
+    @Override
+    public boolean hasNext() {
+        return m_idx < m_source.length - 1;
+    }
 
     /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
+     * {@inheritDoc}
      */
-    void setSampled(final DataCell cell);
+    @Override
+    public int next() {
+        if (!hasNext()) {
+            throw new NoSuchElementException();
+        }
+        m_idx++;
+        return m_source[m_idx];
+    }
 
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
-
-    /**
-     *
-     */
-    void reset();
-
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
-
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
 }

@@ -44,54 +44,38 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.feature;
+package org.knime.base.node.meta.explain.shap;
 
 import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
 
 /**
+ * Corresponds to a subset sample i.e. mask.
+ * It has a weight assigned to it, as well as a set of samples.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+final class ShapSample {
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setOriginal(final DataCell cell);
+    private final Mask m_mask;
 
-    /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
-     */
-    void setSampled(final DataCell cell);
+    private double m_weight;
 
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
+    private final Iterable<Iterable<DataCell>> m_samples;
 
-    /**
-     *
-     */
-    void reset();
+    ShapSample(final Mask mask, final double weight, final Iterable<Iterable<DataCell>> samples) {
+        m_mask = mask;
+        m_weight = weight;
+        m_samples = samples;
+    }
 
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
+    double getWeight() {
+        return m_weight;
+    }
 
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
+    void setWeight(final double weight) {
+        m_weight = weight;
+    }
+
 }

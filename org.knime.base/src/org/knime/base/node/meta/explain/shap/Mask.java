@@ -44,54 +44,29 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   01.04.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.feature;
+package org.knime.base.node.meta.explain.shap;
 
-import org.knime.core.data.DataCell;
-import org.knime.core.data.MissingValueException;
+import org.knime.base.node.meta.explain.util.iter.IntIterable;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+interface Mask extends IntIterable {
+
+    Mask getComplement();
 
     /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
+     * {@inheritDoc}
      */
-    void setOriginal(final DataCell cell);
+    @Override
+    int hashCode();
 
     /**
-     * @param cell
-     * @throws MissingValueException if this handler can't deal with missing values and <b>cell</b> is missing
+     * {@inheritDoc}
      */
-    void setSampled(final DataCell cell);
-
-    /**
-     * Note that <b>idx</b> has to be the local, feature idx i.e. if this handler's current original cell represents 3
-     * features and the second should be replaced, idx has to be 1.
-     *
-     * @param idx feature that should be replaced
-     */
-    void markForReplacement(final int idx);
-
-    /**
-     *
-     */
-    void reset();
-
-    /**
-     * Resets the replacement state but keeps the original and sampled cells
-     */
-    void resetReplaceState();
-
-    /**
-     * Replaces the original cell with the features marked for replacement replaced by their values from the sampled
-     * cell.
-     *
-     * @return the perturbed cell
-     */
-    DataCell createReplaced();
+    @Override
+    boolean equals(Object obj);
 }
