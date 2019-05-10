@@ -63,14 +63,14 @@ final class WeightVector {
     }
 
     private static double[] createWeights(final int numFeatures) {
-        final int featuresMinus1 = numFeatures - 1;
+        final double featuresMinus1 = numFeatures - 1;
         final int numSubsetSizes = (int)Math.ceil((numFeatures - 1) / 2.0);
         final int numPairedSubsetSizes = (int)Math.floor((numFeatures - 1) / 2.0);
         final double[] weights = new double[numSubsetSizes];
         double weightSum = 0.0;
         for (int i = 0; i < weights.length; i++) {
             final int currentSubsetSize = i + 1;
-            int weight = featuresMinus1 / (currentSubsetSize * (numFeatures - currentSubsetSize));
+            double weight = featuresMinus1 / (currentSubsetSize * (numFeatures - currentSubsetSize));
             if (i < numPairedSubsetSizes) {
                 weight *= 2;
             }

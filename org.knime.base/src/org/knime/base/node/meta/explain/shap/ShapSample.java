@@ -48,11 +48,15 @@
  */
 package org.knime.base.node.meta.explain.shap;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+
 import org.knime.core.data.DataCell;
+import org.knime.core.node.util.CheckUtils;
 
 /**
- * Corresponds to a subset sample i.e. mask.
- * It has a weight assigned to it, as well as a set of samples.
+ * Corresponds to a subset sample i.e. mask. It has a weight assigned to it, as well as a set of samples.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
@@ -62,9 +66,11 @@ final class ShapSample {
 
     private double m_weight;
 
-    private final Iterable<Iterable<DataCell>> m_samples;
+    private ShapSample m_complement;
 
-    ShapSample(final Mask mask, final double weight, final Iterable<Iterable<DataCell>> samples) {
+    private final Iterable<List<DataCell>> m_samples;
+
+    ShapSample(final Mask mask, final double weight, final Iterable<List<DataCell>> samples) {
         m_mask = mask;
         m_weight = weight;
         m_samples = samples;
@@ -76,6 +82,24 @@ final class ShapSample {
 
     void setWeight(final double weight) {
         m_weight = weight;
+    }
+
+    Mask getMask() {
+        return m_mask;
+    }
+
+    Optional<ShapSample> getComplement() {
+        return Optional.ofNullable(m_complement);
+    }
+
+    void setComplement(final ShapSample complement) {
+        CheckUtils.checkArgument(complement.m_mask.getComplement().equals(m_mask),
+            "The provided complement does not have the complement mask.");
+        m_complement = complement;
+    }
+
+    Iterator<List<DataCell>> getSampleIterator() {
+        return m_samples.iterator();
     }
 
 }

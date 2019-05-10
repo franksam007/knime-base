@@ -48,16 +48,16 @@
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.knime.base.node.meta.explain.util.iter.IntIterator;
 import org.knime.base.node.meta.explain.util.iter.IteratorUtils;
-
-import com.google.common.collect.Iterators;
+import org.knime.core.data.DataCell;
+import org.knime.core.data.def.DoubleCell;
 
 /**
  *
@@ -71,7 +71,14 @@ final class DefaultMask implements Mask {
 
     private ComplementMask m_complement = null;
 
-    private final int m_hashCode;
+    private int m_hashCode = 0;
+
+    private boolean m_firstCallToHashCode = true;
+
+    // TODO move these singletons into some kind of utility class
+    private static final DoubleCell ONE = new DoubleCell(1.0);
+
+    private static final DoubleCell ZERO = new DoubleCell(0.0);
 
     /**
      * The constructor is private because we require that <b>indices</b> are ordered,
@@ -79,13 +86,9 @@ final class DefaultMask implements Mask {
      * @param indices the ordered indices
      * @param numFeatures the total number of features
      */
-    private DefaultMask(final int[] indices, final int numFeatures) {
+    DefaultMask(final int[] indices, final int numFeatures) {
         m_numFeatures = numFeatures;
         m_indices = indices;
-        HashCodeBuilder hashCodeBuilder = new HashCodeBuilder();
-        hashCodeBuilder.append(numFeatures);
-        hashCodeBuilder.append(indices);
-        m_hashCode = hashCodeBuilder.toHashCode();
     }
 
     /**
@@ -93,6 +96,13 @@ final class DefaultMask implements Mask {
      */
     @Override
     public int hashCode() {
+        if (m_firstCallToHashCode) {
+            m_firstCallToHashCode = false;
+            HashCodeBuilder hashCodeBuilder = new HashCodeBuilder();
+            hashCodeBuilder.append(m_numFeatures);
+            hashCodeBuilder.append(m_indices);
+            m_hashCode = hashCodeBuilder.toHashCode();
+        }
         return m_hashCode;
     }
 
@@ -122,23 +132,6 @@ final class DefaultMask implements Mask {
     }
 
     /**
-     * Ensures that <b>indices</b> is sorted.
-     *
-     * @param indices potentially unsorted indices
-     * @param numFeatures the total number of features
-     * @return a Mask
-     */
-    static Mask createMask(final int[] indices, final int numFeatures) {
-        Arrays.sort(indices, 0, indices.length);
-        return new DefaultMask(indices, numFeatures);
-    }
-
-    static Iterator<Mask> createMaskIterator(final int numFeatures, final int subsetSize) {
-        final Iterator<int[]> combinations = CombinatoricsUtils.combinationsIterator(numFeatures, subsetSize);
-        return Iterators.transform(combinations, i -> new DefaultMask(i, numFeatures));
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -157,15 +150,39 @@ final class DefaultMask implements Mask {
         return m_complement;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<DataCell> toCells() {
+        return toCells(iterator(), m_numFeatures);
+    }
+
+    private static List<DataCell> toCells(final IntIterator included, final int numFeatures) {
+        final List<DataCell> cells = new ArrayList<DataCell>(numFeatures);
+        int currentIncluded;
+        if (included.hasNext()) {
+            currentIncluded = included.next();
+        } else {
+            assert false : "This branch should actually never be reached!";
+            currentIncluded = -1;
+        }
+        for (int i = 0; i < numFeatures; i++) {
+            if (i == currentIncluded) {
+                cells.add(ONE);
+                currentIncluded = included.hasNext() ? included.next() : -1;
+            } else {
+                cells.add(ZERO);
+            }
+        }
+        return cells;
+    }
+
     private class ComplementMask implements Mask {
 
-        private final int m_hashCode;
+        private int m_complementHashCode = 0;
 
-        ComplementMask() {
-            HashCodeBuilder hashCodeBuilder = new HashCodeBuilder();
-            hashCodeBuilder.append(DefaultMask.this.hashCode());
-            m_hashCode = hashCodeBuilder.toHashCode();
-        }
+        private boolean m_complementFirstCallToHashCode = true;
 
         /**
          * {@inheritDoc}
@@ -199,6 +216,29 @@ final class DefaultMask implements Mask {
             return false;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int hashCode() {
+            if (this.m_complementFirstCallToHashCode) {
+                this.m_complementFirstCallToHashCode = false;
+                HashCodeBuilder hashCodeBuilder = new HashCodeBuilder();
+                hashCodeBuilder.append(DefaultMask.this.hashCode());
+                m_complementHashCode = hashCodeBuilder.toHashCode();
+            }
+            return this.m_complementHashCode;
+        }
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public List<DataCell> toCells() {
+            return DefaultMask.toCells(this.iterator(), m_numFeatures);
+        }
+
     }
 
     // TODO test this thoroughly!!!
@@ -223,11 +263,11 @@ final class DefaultMask implements Mask {
         }
 
         private int numIndicesLeft() {
-            return m_numFeatures - numNotContainedLeft() - m_idx;
+            return m_numFeatures - numNotContainedLeft() - m_idx - 1;
         }
 
         private int numNotContainedLeft() {
-            return m_indices.length - m_notContainedIdx - 1;
+            return m_indices.length - m_notContainedIdx;
         }
 
         private int nextNotContained() {

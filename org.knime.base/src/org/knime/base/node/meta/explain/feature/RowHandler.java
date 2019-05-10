@@ -48,6 +48,8 @@
  */
 package org.knime.base.node.meta.explain.feature;
 
+import java.util.List;
+
 import org.knime.base.node.meta.explain.util.iter.IntIterator;
 import org.knime.core.data.DataCell;
 
@@ -67,5 +69,5 @@ public interface RowHandler {
 
     int getExpectedNumberOfCells();
 
-    Iterable<DataCell> createReplaced();
+    List<DataCell> createReplaced();
 }

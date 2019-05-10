@@ -44,34 +44,49 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 10, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.List;
-
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
-import org.knime.core.data.DataCell;
+import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution;
+import org.apache.commons.math3.random.RandomDataGenerator;
 
 /**
- *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
+final class SubsetSampler {
 
-    Mask getComplement();
+    private final EnumeratedIntegerDistribution m_sizeSampler;
 
-    List<DataCell> toCells();
+    private final RandomDataGenerator m_rdg;
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    int hashCode();
+    private final int m_numFeatures;
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    boolean equals(Object obj);
+    private final int m_singleSize;
+
+    SubsetSampler(final RandomDataGenerator rdg, final int[] subsetSizes, final double[] distribution,
+        final int numFeatures) {
+        m_rdg = rdg;
+        if (subsetSizes.length > 1) {
+            m_singleSize = -1;
+            m_sizeSampler = new EnumeratedIntegerDistribution(rdg.getRandomGenerator(), subsetSizes, distribution);
+        } else {
+            m_singleSize = subsetSizes[0];
+            m_sizeSampler = null;
+        }
+        m_numFeatures = numFeatures;
+    }
+
+    int[] sampleSubset() {
+        final int size = sampleSize();
+        return m_rdg.nextPermutation(m_numFeatures, size);
+    }
+
+    private int sampleSize() {
+        if (m_sizeSampler != null) {
+            return m_sizeSampler.sample();
+        } else {
+            return m_singleSize;
+        }
+    }
 }

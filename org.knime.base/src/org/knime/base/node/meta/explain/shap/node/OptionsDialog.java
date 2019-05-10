@@ -46,7 +46,7 @@
  * History
  *   14.03.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.lime.node;
+package org.knime.base.node.meta.explain.shap.node;
 
 import java.awt.Component;
 import java.awt.GridBagConstraints;
@@ -78,15 +78,9 @@ class OptionsDialog {
     private final JSpinner m_explanationSetSize =
         new JSpinner(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1000));
 
-    private final JCheckBox m_sampleAroundInstance = new JCheckBox("Sample around instances");
-
     private final JTextField m_seedBox = new JTextField();
 
     private final JButton m_newSeedBtn = new JButton("New");
-
-    private final JCheckBox m_manuallySpecifyKernelWidth = new JCheckBox("Manual kernel width");
-
-    private final JSpinner m_kernelWidth = new JSpinner(new SpinnerNumberModel(0.5, 0.000001, 1e10, 0.1));
 
     private final JCheckBox m_useSeed = new JCheckBox("Use seed");
 
@@ -100,15 +94,6 @@ class OptionsDialog {
     private void setupListeners() {
         m_newSeedBtn.addActionListener(e -> m_seedBox.setText(new Random().nextLong() + ""));
         m_useSeed.addActionListener(e -> reactToUseSeedCheckBox());
-        m_manuallySpecifyKernelWidth
-            .addActionListener(e -> reactToUseManualKernelCheckBox());
-    }
-
-    /**
-     *
-     */
-    private void reactToUseManualKernelCheckBox() {
-        m_kernelWidth.setEnabled(m_manuallySpecifyKernelWidth.isSelected());
     }
 
     private void reactToUseSeedCheckBox() {
@@ -131,25 +116,9 @@ class OptionsDialog {
 
         panel.add(createSamplingOptionsPanel(), gbc);
 
-        gbc.gridy++;
-
-        panel.add(createKernelOptionsPanel(), gbc);
-
         return panel;
     }
 
-    private JPanel createKernelOptionsPanel() {
-        final GridBagConstraints gbc = createGbc();
-        final JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Kernel Options"));
-        panel.add(m_manuallySpecifyKernelWidth, gbc);
-        gbc.gridx++;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        panel.add(m_kernelWidth, gbc);
-        return panel;
-    }
 
     private JPanel createSamplingOptionsPanel() {
         final GridBagConstraints gbc = createGbc();
@@ -159,9 +128,6 @@ class OptionsDialog {
         addComponent(panel, gbc, "Explanation set size", m_explanationSetSize);
         gbc.gridy++;
         gbc.gridx = 0;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        panel.add(m_sampleAroundInstance, gbc);
-        gbc.gridy++;
         gbc.gridwidth = 1;
         gbc.weighty = 0;
         gbc.gridx = 0;
@@ -195,14 +161,11 @@ class OptionsDialog {
         panel.add(component, gbc);
     }
 
-    void saveSettingsTo(final LIMESettings cfg) throws InvalidSettingsException {
+    void saveSettingsTo(final ShapSettings cfg) throws InvalidSettingsException {
         m_featureColumns.saveConfiguration(cfg.getFeatureCols());
         cfg.setExplanationSetSize((int)m_explanationSetSize.getValue());
         cfg.setSeed(getSeedAsLong());
         cfg.setUseSeed(m_useSeed.isSelected());
-        cfg.setSampleAroundInstance(m_sampleAroundInstance.isSelected());
-        cfg.setUseManualKernelWidth(m_manuallySpecifyKernelWidth.isSelected());
-        cfg.setKernelWidth((double)m_kernelWidth.getValue());
     }
 
     private long getSeedAsLong() throws InvalidSettingsException {
@@ -214,16 +177,12 @@ class OptionsDialog {
         }
     }
 
-    void loadSettingsFrom(final LIMESettings cfg, final DataTableSpec inSpec) {
+    void loadSettingsFrom(final ShapSettings cfg, final DataTableSpec inSpec) {
         m_featureColumns.loadConfiguration(cfg.getFeatureCols(), inSpec);
         m_explanationSetSize.setValue(cfg.getExplanationSetSize());
-        m_sampleAroundInstance.setSelected(cfg.isSampleAroundInstance());
         m_seedBox.setText(cfg.getManualSeed() + "");
         m_useSeed.setSelected(cfg.isUseSeed());
         reactToUseSeedCheckBox();
-        m_kernelWidth.setValue(cfg.getKernelWidth());
-        m_manuallySpecifyKernelWidth.setSelected(cfg.isUseManualKernelWidth());
-        reactToUseManualKernelCheckBox();
     }
 
 }

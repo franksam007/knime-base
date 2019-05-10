@@ -49,16 +49,16 @@
 package org.knime.base.node.meta.explain.shap;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
-import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.commons.math3.util.CombinatoricsUtils;
+import org.knime.base.node.meta.explain.util.RandomDataGeneratorFactory;
 import org.knime.core.data.DataRow;
 
 /**
@@ -73,71 +73,112 @@ final class ShapSampler {
 
     private final int m_numFeatures;
 
-    ShapSampler(final SubsetReplacer subsetSampler, final int numSubSetSamples, final int numFeatures) {
+    private final MaskFactory m_maskFactory;
+
+    private final RandomDataGeneratorFactory m_rdgFactory;
+
+    ShapSampler(final SubsetReplacer subsetReplacer, final MaskFactory maskFactory, final int numSubSetSamples,
+        final int numFeatures, final RandomDataGeneratorFactory rdgFactory) {
         m_numSubsetSamples = numSubSetSamples;
         m_numFeatures = numFeatures;
-        m_subsetReplacer = subsetSampler;
+        m_subsetReplacer = subsetReplacer;
+        m_maskFactory = maskFactory;
+        m_rdgFactory = rdgFactory;
     }
 
-    Collection<ShapSample> createSamples(final DataRow roi) {
+    Iterator<ShapSample> createSamples(final DataRow roi) {
         final List<ShapSample> samples = new ArrayList<>();
         final WeightVector weightVector = new WeightVector(m_numFeatures);
         final SubsetEnumerator subsetEnumerator = new SubsetEnumerator(roi, weightVector);
         subsetEnumerator.enumerateSubsets(samples::add);
+        if (weightVector.getNumSubsetSizes() > subsetEnumerator.getNumFullSubsetSizes()) {
+            final ShapSubsetSampler subsetSampler = new ShapSubsetSampler(roi, weightVector,
+                subsetEnumerator.getNumSamplesAdded(), subsetEnumerator.getNumFullSubsetSizes(), m_rdgFactory.create());
+            subsetSampler.sampleSubsets(samples::add);
+        }
 
-        return null;
+        // TODO implement as lazy iterator
+        return samples.iterator();
     }
 
-    private final class SubsetSampler {
+    private final class ShapSubsetSampler {
         private final DataRow m_roi;
 
-        private final EnumeratedIntegerDistribution m_sizeSampler;
-
-        private final RandomDataGenerator m_rdg;
-
-        private final int m_numFixedSamples;
+        private final SubsetSampler m_subsetSampler;
 
         private final double m_weightLeft;
 
+        private final WeightVector m_weightVector;
+
         private int m_samplesLeft;
 
-        SubsetSampler(final DataRow roi, final WeightVector weightVector, final int numFixedSamples,
-            final RandomDataGenerator rdg) {
+        ShapSubsetSampler(final DataRow roi, final WeightVector weightVector, final int numSamplesAdded,
+            final int numFixedSamples, final RandomDataGenerator rdg) {
             m_samplesLeft = m_numSubsetSamples - numFixedSamples;
-            m_numFixedSamples = numFixedSamples;
             m_roi = roi;
             final int[] leftSubsetSizes = increasingArray(numFixedSamples, weightVector.getNumSubsetSizes());
             m_weightLeft = weightVector.getWeightLeft(numFixedSamples);
-            // TODO extract rdg and size sampler into a separate class
-            m_rdg = rdg;
-            m_sizeSampler = new EnumeratedIntegerDistribution(rdg.getRandomGenerator(), leftSubsetSizes,
-                weightVector.getTailDistribution(numFixedSamples));
-        }
-
-        private int[] sampleSubset() {
-            final int size = m_sizeSampler.sample();
-            return m_rdg.nextPermutation(m_numFeatures, size);
+            m_subsetSampler = new SubsetSampler(rdg, leftSubsetSizes, weightVector.getTailDistribution(numFixedSamples),
+                m_numFeatures);
+            // TODO we only need it to check if a subset is paired. Perhaps this functionality could be provided by a separate class
+            m_weightVector = weightVector;
         }
 
         void sampleSubsets(final Consumer<ShapSample> sink) {
-            // TODO verify that we can safely use int[] as key i.e. it has a valid hashCode implementation
-            final Map<int[], ShapSample> usedMasks = new HashMap<>();
+            final Map<Mask, ShapSample> usedMasks = new HashMap<>();
+            double weightSum = 0.0;
             while (m_samplesLeft > 0) {
-                final int[] subset = sampleSubset();
-                ShapSample sample = usedMasks.get(subset);
+                final int[] subset = m_subsetSampler.sampleSubset();
+                final Mask mask = m_maskFactory.createMask(subset);
+                ShapSample sample = usedMasks.get(mask);
+                weightSum++;
                 boolean newSample = false;
                 if (sample == null) {
                     newSample = true;
-                    final Mask mask = DefaultMask.createMask(subset, m_numFeatures);
                     sample = new ShapSample(mask, 1.0, m_subsetReplacer.replace(m_roi, mask));
-                    usedMasks.put(subset, sample);
-                    // TODO continue implementation
+                    usedMasks.put(mask, sample);
+                    m_samplesLeft--;
+                    sink.accept(sample);
                 } else {
                     sample.setWeight(sample.getWeight() + 1.0);
                 }
+                if (m_samplesLeft > 0 && m_weightVector.isPairedSubsetSize(subset.length)) {
+                    weightSum++;
+                    final ShapSample finalSample = sample;
+                    Optional<ShapSample> optionalComplement = sample.getComplement();
+                    final ShapSample complement = optionalComplement.orElseGet(() -> createComplement(finalSample));
+                    complement.setWeight(complement.getWeight() + 1.0);
+                    if (newSample) {
+                        m_samplesLeft--;
+                        sink.accept(complement);
+                    }
+                }
+            }
+            if (weightSum > 0) {
+                normalizeWeights(usedMasks.values(), weightSum);
             }
         }
 
+        private ShapSample createComplement(final ShapSample sample) {
+            final Mask mask = sample.getMask();
+            final Mask complementMask = mask.getComplement();
+            final ShapSample complement =
+                new ShapSample(complementMask, 0.0, m_subsetReplacer.replace(m_roi, complementMask));
+            sample.setComplement(complement);
+            return complement;
+        }
+
+        private void normalizeWeights(final Iterable<ShapSample> samples, final double weightSum) {
+            final double scaler = m_weightLeft / weightSum;
+            for (ShapSample sample : samples) {
+                sample.setWeight(scaler * sample.getWeight());
+                final Optional<ShapSample> optComplement = sample.getComplement();
+                if (optComplement.isPresent()) {
+                    final ShapSample complement = optComplement.get();
+                    complement.setWeight(scaler * complement.getWeight());
+                }
+            }
+        }
     }
 
     private static int[] increasingArray(final int from, final int to) {
@@ -178,7 +219,7 @@ final class ShapSampler {
                     m_subsetsAdded += numSubsets;
                     if (m_weightVector.getScaled(subsetSize) < 1.0) {
                         // TODO check if this is numerically stable.. Maybe this can also happen inside of WeightVector
-                        m_weightVector.rescale(1.0 / 1.0 - m_weightVector.getScaled(subsetSize));
+                        m_weightVector.rescale(1.0 / (1.0 - m_weightVector.getScaled(subsetSize)));
                     }
                     final double weight = m_weightVector.get(subsetSize) / numSubsets;
                     addAllSubsets(sink, subsetSize, isPaired, weight);
@@ -188,9 +229,13 @@ final class ShapSampler {
             }
         }
 
+        int getNumSamplesAdded() {
+            return m_subsetsAdded;
+        }
+
         private void addAllSubsets(final Consumer<ShapSample> sink, final int subsetSize, final boolean isPaired,
             final double weight) {
-            final Iterator<Mask> masks = DefaultMask.createMaskIterator(m_numFeatures, subsetSize);
+            final Iterator<Mask> masks = m_maskFactory.allMasks(subsetSize);
             while (masks.hasNext()) {
                 final Mask mask = masks.next();
                 final ShapSample sample = new ShapSample(mask, weight, m_subsetReplacer.replace(m_roi, mask));
@@ -202,10 +247,6 @@ final class ShapSampler {
                     sink.accept(complement);
                 }
             }
-        }
-
-        int getNumSamplesLeft() {
-            return m_numSamplesLeft;
         }
 
         int getNumFullSubsetSizes() {

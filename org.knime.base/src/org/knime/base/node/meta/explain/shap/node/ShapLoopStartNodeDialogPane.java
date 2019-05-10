@@ -44,34 +44,52 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   15.03.2016 (adrian): created
  */
-package org.knime.base.node.meta.explain.shap;
+package org.knime.base.node.meta.explain.shap.node;
 
-import java.util.List;
-
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
-import org.knime.core.data.DataCell;
+import org.knime.core.data.DataTableSpec;
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeSettingsRO;
+import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.NotConfigurableException;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
+class ShapLoopStartNodeDialogPane extends NodeDialogPane {
 
-    Mask getComplement();
+    private final OptionsDialog m_options = new OptionsDialog();
 
-    List<DataCell> toCells();
+    /**
+     *
+     */
+    public ShapLoopStartNodeDialogPane() {
+        addTab("Options", m_options.getPanel());
+    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    int hashCode();
+    protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
+        final ShapSettings cfg = new ShapSettings();
+        m_options.saveSettingsTo(cfg);
+        cfg.saveSettings(settings);
+    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    boolean equals(Object obj);
+    protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
+        throws NotConfigurableException {
+        final DataTableSpec inSpec = specs[0];
+        final ShapSettings cfg = new ShapSettings();
+        cfg.loadSettingsDialog(settings, inSpec);
+        m_options.loadSettingsFrom(cfg, inSpec);
+    }
+
 }

@@ -55,7 +55,7 @@ import org.knime.core.data.MissingValueException;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface FeatureHandler {
+interface FeatureHandler {
 
     /**
      * @param cell

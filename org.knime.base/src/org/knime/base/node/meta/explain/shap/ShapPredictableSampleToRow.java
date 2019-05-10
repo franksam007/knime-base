@@ -44,34 +44,39 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 10, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
 import org.knime.core.data.DataCell;
+import org.knime.core.data.DataRow;
+import org.knime.core.data.RowKey;
+import org.knime.core.data.def.DefaultRow;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
-
-    Mask getComplement();
-
-    List<DataCell> toCells();
+enum ShapPredictableSampleToRow implements SampleToRow<ShapSample, RowKey> {
+        INSTANCE;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    int hashCode();
+    public void write(final ShapSample sample, final RowKey parameters, final Consumer<DataRow> rowConsumer) {
+        final Iterator<List<DataCell>> samples = sample.getSampleIterator();
+        final String baseRowKey = parameters.getString();
+        for (int i = 0; samples.hasNext(); i++) {
+            final List<DataCell> cells = samples.next();
+            final RowKey key = new RowKey(baseRowKey + "_" + i);
+            final DataRow row = new DefaultRow(key, cells);
+            rowConsumer.accept(row);
+        }
+    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    boolean equals(Object obj);
 }

@@ -44,34 +44,19 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 10, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.List;
+import java.util.function.Consumer;
 
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
-import org.knime.core.data.DataCell;
+import org.knime.core.data.DataRow;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
+interface SampleToRow <S, P> {
 
-    Mask getComplement();
-
-    List<DataCell> toCells();
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    int hashCode();
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    boolean equals(Object obj);
+    void write(S sample, P parameters, Consumer<DataRow> rowConsumer);
 }

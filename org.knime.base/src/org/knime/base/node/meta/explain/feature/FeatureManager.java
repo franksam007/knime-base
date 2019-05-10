@@ -74,7 +74,7 @@ import org.knime.core.node.util.CheckUtils;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class FeatureManager {
+public final class FeatureManager {
 
     /**
      * The current feature spec
@@ -116,6 +116,15 @@ public class FeatureManager {
     public Optional<List<String>> getFeatureNames() {
         checkInitialized();
         return m_namesFullyInitialized ? Optional.of(flattenNames()) : Optional.empty();
+    }
+
+    /**
+     * @return creates a {@link RowHandler} for the current set of features
+     */
+    public RowHandler createRowHandler() {
+        final Iterable<FeatureHandler> handlers = m_featureHandlerFactories.stream()
+            .map(FeatureHandlerFactory::createFeatureHandler).collect(Collectors.toList());
+        return new DefaultRowHandler(handlers, m_numFeaturesPerCol);
     }
 
     private List<String> flattenNames() {
@@ -175,10 +184,8 @@ public class FeatureManager {
     }
 
     /**
-     * Intended for the use during execution.
-     * Updates all information based on the actual from of rows.
-     * This includes the verification and possible update of the feature names and counts for collection
-     * columns.
+     * Intended for the use during execution. Updates all information based on the actual from of rows. This includes
+     * the verification and possible update of the feature names and counts for collection columns.
      *
      * @param row a row from the input table
      * @return true if the configuration matches the execution state (i.e. same number of features)

@@ -76,10 +76,10 @@ final class SubsetReplacer {
         m_rowHandler = rowHandler;
     }
 
-    Iterable<Iterable<DataCell>> replace(final DataRow roi, final Mask mask) {
+    Iterable<List<DataCell>> replace(final DataRow roi, final Mask mask) {
         CheckUtils.checkArgument(roi.getNumCells() == m_rowHandler.getExpectedNumberOfCells(),
             "The roi has %s cells but %s were expected.", roi.getNumCells(), m_rowHandler.getExpectedNumberOfCells());
-        final List<Iterable<DataCell>> samples = new ArrayList<>();
+        final List<List<DataCell>> samples = new ArrayList<>();
         m_rowHandler.setOriginal(roi);
         m_rowHandler.resetReplacementIndices();
         m_rowHandler.setReplacementIndices(mask.iterator());

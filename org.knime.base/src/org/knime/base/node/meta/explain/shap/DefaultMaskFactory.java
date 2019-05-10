@@ -44,34 +44,45 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 10, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.List;
+import java.util.Arrays;
+import java.util.Iterator;
 
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
-import org.knime.core.data.DataCell;
+import org.apache.commons.math3.util.CombinatoricsUtils;
+
+import com.google.common.collect.Iterators;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
+final class DefaultMaskFactory implements MaskFactory {
 
-    Mask getComplement();
+    private final int m_numFeatures;
 
-    List<DataCell> toCells();
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    int hashCode();
+    DefaultMaskFactory(final int numFeatures) {
+        m_numFeatures = numFeatures;
+    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    boolean equals(Object obj);
+    public Mask createMask(final int[] indices) {
+        Arrays.sort(indices);
+        return new DefaultMask(indices, m_numFeatures);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Iterator<Mask> allMasks(final int subsetSize) {
+        final Iterator<int[]> combinations = CombinatoricsUtils.combinationsIterator(m_numFeatures, subsetSize);
+        return Iterators.transform(combinations, i -> new DefaultMask(i, m_numFeatures));
+    }
+
 }

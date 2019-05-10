@@ -44,34 +44,73 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 10, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.List;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
-import org.knime.core.data.DataCell;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.junit.Test;
+import org.knime.base.node.meta.explain.util.iter.IntIterator;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
+public class DefaultMaskTest {
 
-    Mask getComplement();
+    private static IntIterator createComplementIterator(final int[] expected, final int numFeatures) {
+        final Set<Integer> expectedSet = Arrays.stream(expected).boxed().collect(Collectors.toSet());
+        int[] indices = new int[numFeatures - expected.length];
+        int i = 0;
+        for (int j = 0; j < numFeatures; j++) {
+            if (!expectedSet.contains(j)) {
+                indices[i] = j;
+                i++;
+            }
+        }
+        final Mask mask = new DefaultMask(indices, numFeatures);
+        return mask.getComplement().iterator();
+    }
 
-    List<DataCell> toCells();
+    @Test
+    public void testComplementIterator() throws Exception {
+        int[] expected = new int[] {0, 1};
+        IntIterator iter = createComplementIterator(expected, 3);
+        testIterator(iter, expected);
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    int hashCode();
+        expected = new int[] {0, 2};
+        iter = createComplementIterator(expected, 3);
+        testIterator(iter, expected);
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    boolean equals(Object obj);
+        expected = new int[] {1, 2};
+        iter = createComplementIterator(expected, 3);
+        testIterator(iter, expected);
+
+        expected = new int[] {0};
+        iter = createComplementIterator(expected, 3);
+        testIterator(iter, expected);
+
+        expected = new int[] {1};
+        iter = createComplementIterator(expected, 3);
+        testIterator(iter, expected);
+
+        expected = new int[] {2};
+        iter = createComplementIterator(expected, 3);
+        testIterator(iter, expected);
+    }
+
+    private void testIterator(final IntIterator iterator, final int[] expected) {
+        for (int expectedIdx : expected) {
+            assertTrue(iterator.hasNext());
+            assertEquals(expectedIdx, iterator.next());
+        }
+        assertFalse(iterator.hasNext());
+    }
 }

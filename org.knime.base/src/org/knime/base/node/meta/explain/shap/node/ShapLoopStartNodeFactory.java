@@ -44,34 +44,59 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   07.03.2019 (adrian): created
  */
-package org.knime.base.node.meta.explain.shap;
+package org.knime.base.node.meta.explain.shap.node;
 
-import java.util.List;
-
-import org.knime.base.node.meta.explain.util.iter.IntIterable;
-import org.knime.core.data.DataCell;
+import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeFactory;
+import org.knime.core.node.NodeView;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface Mask extends IntIterable {
-
-    Mask getComplement();
-
-    List<DataCell> toCells();
+public class ShapLoopStartNodeFactory extends NodeFactory<ShapLoopStartNodeModel> {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    int hashCode();
+    public ShapLoopStartNodeModel createNodeModel() {
+        return new ShapLoopStartNodeModel();
+    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    boolean equals(Object obj);
+    protected int getNrNodeViews() {
+        return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeView<ShapLoopStartNodeModel> createNodeView(final int viewIndex,
+        final ShapLoopStartNodeModel nodeModel) {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean hasDialog() {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected NodeDialogPane createNodeDialogPane() {
+        return new ShapLoopStartNodeDialogPane();
+    }
+
 }
