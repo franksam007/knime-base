@@ -125,6 +125,7 @@ final class ShapSampler {
         }
 
         void sampleSubsets(final Consumer<ShapSample> sink) {
+            // TODO check if this can be split into smaller sub functions to increase readability
             final Map<Mask, ShapSample> usedMasks = new HashMap<>();
             double weightSum = 0.0;
             while (m_samplesLeft > 0) {
