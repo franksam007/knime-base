@@ -159,7 +159,7 @@ final class DefaultMask implements Mask {
     }
 
     private static List<DataCell> toCells(final IntIterator included, final int numFeatures) {
-        final List<DataCell> cells = new ArrayList<DataCell>(numFeatures);
+        final List<DataCell> cells = new ArrayList<>(numFeatures);
         int currentIncluded;
         if (included.hasNext()) {
             currentIncluded = included.next();
@@ -263,11 +263,16 @@ final class DefaultMask implements Mask {
         }
 
         private int numIndicesLeft() {
-            return m_numFeatures - numNotContainedLeft() - m_idx - 1;
+            final int numNotContainedLeft = numNotContainedLeft();
+            return m_numFeatures - numNotContainedLeft - m_idx - 1;
         }
 
         private int numNotContainedLeft() {
-            return m_indices.length - m_notContainedIdx;
+            if (m_idx < nextNotContained()) {
+                return m_indices.length - m_notContainedIdx;
+            } else {
+                return 0;
+            }
         }
 
         private int nextNotContained() {

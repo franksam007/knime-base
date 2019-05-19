@@ -116,11 +116,11 @@ final class ShapSampler {
             final int numFixedSamples, final RandomDataGenerator rdg) {
             m_samplesLeft = m_numSubsetSamples - numFixedSamples;
             m_roi = roi;
-            final int[] leftSubsetSizes = increasingArray(numFixedSamples, weightVector.getNumSubsetSizes());
+            final int[] leftSubsetSizes = increasingArray(numFixedSamples + 1, weightVector.getNumSubsetSizes());
             m_weightLeft = weightVector.getWeightLeft(numFixedSamples);
             m_subsetSampler = new SubsetSampler(rdg, leftSubsetSizes, weightVector.getTailDistribution(numFixedSamples),
                 m_numFeatures);
-            // TODO we only need it to check if a subset is paired. Perhaps this functionality could be provided by a separate class
+            // TODO we only need it to check if a subset is paired. Perhaps this functionality could be provided by a separate class (SubsetTracker!)
             m_weightVector = weightVector;
         }
 
@@ -182,7 +182,7 @@ final class ShapSampler {
     }
 
     private static int[] increasingArray(final int from, final int to) {
-        final int[] array = new int[to - from];
+        final int[] array = new int[to - from + 1];
         for (int i = 0; i < array.length; i++) {
             array[i] = i + from;
         }

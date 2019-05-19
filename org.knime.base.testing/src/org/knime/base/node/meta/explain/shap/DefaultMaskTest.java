@@ -67,7 +67,7 @@ public class DefaultMaskTest {
 
     private static IntIterator createComplementIterator(final int[] expected, final int numFeatures) {
         final Set<Integer> expectedSet = Arrays.stream(expected).boxed().collect(Collectors.toSet());
-        int[] indices = new int[numFeatures - expected.length];
+        final int[] indices = new int[numFeatures - expected.length];
         int i = 0;
         for (int j = 0; j < numFeatures; j++) {
             if (!expectedSet.contains(j)) {
