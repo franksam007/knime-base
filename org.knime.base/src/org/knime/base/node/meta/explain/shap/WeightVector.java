@@ -85,12 +85,16 @@ final class WeightVector {
     }
 
     double getScaled(final int subsetSize) {
-        return get(subsetSize) * m_scaler;
+        return getInternal(subsetSize) * m_scaler;
+    }
+
+    private double getInternal(final int subsetSize) {
+        final int idx = subsetSize - 1;
+        return m_weights[idx];
     }
 
     double get(final int subsetSize) {
-        final int idx = subsetSize - 1;
-        final double weight = m_weights[idx];
+        final double weight = getInternal(subsetSize);
         return isPairedSubsetSize(subsetSize) ? weight / 2 : weight;
     }
 

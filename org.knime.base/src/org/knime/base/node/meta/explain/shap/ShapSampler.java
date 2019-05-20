@@ -120,7 +120,6 @@ final class ShapSampler {
             m_weightLeft = weightVector.getWeightLeft(numFixedSamples);
             m_subsetSampler = new SubsetSampler(rdg, leftSubsetSizes, weightVector.getTailDistribution(numFixedSamples),
                 m_numFeatures);
-            // TODO we only need it to check if a subset is paired. Perhaps this functionality could be provided by a separate class (SubsetTracker!)
             m_weightVector = weightVector;
         }
 
