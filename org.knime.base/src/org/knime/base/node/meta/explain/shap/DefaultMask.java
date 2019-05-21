@@ -65,6 +65,11 @@ import org.knime.core.data.def.DoubleCell;
  */
 final class DefaultMask implements Mask {
 
+ // TODO move these singletons into some kind of utility class
+    private static final DoubleCell ONE = new DoubleCell(1.0);
+
+    private static final DoubleCell ZERO = new DoubleCell(0.0);
+
     private final int[] m_indices;
 
     private final int m_numFeatures;
@@ -74,11 +79,6 @@ final class DefaultMask implements Mask {
     private int m_hashCode = 0;
 
     private boolean m_firstCallToHashCode = true;
-
-    // TODO move these singletons into some kind of utility class
-    private static final DoubleCell ONE = new DoubleCell(1.0);
-
-    private static final DoubleCell ZERO = new DoubleCell(0.0);
 
     /**
      * The constructor is private because we require that <b>indices</b> are ordered,
@@ -126,9 +126,32 @@ final class DefaultMask implements Mask {
                     return false;
                 }
             }
+            return true;
         }
 
         return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        return toBitString(iterator(), m_numFeatures);
+    }
+
+    private static String toBitString(final IntIterator iterator, final int numFeatures) {
+        final StringBuilder sb = new StringBuilder();
+        int currentIdx = iterator.hasNext() ? iterator.next() : -1;
+        for (int i = 0; i < numFeatures; i++) {
+            if (i == currentIdx) {
+                sb.append("1");
+                currentIdx = iterator.hasNext() ? iterator.next() : -1;
+            } else {
+                sb.append("0");
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -205,6 +228,14 @@ final class DefaultMask implements Mask {
          * {@inheritDoc}
          */
         @Override
+        public String toString() {
+            return toBitString(this.iterator(), m_numFeatures);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public boolean equals(final Object obj) {
             if (obj == this) {
                 return true;
@@ -241,7 +272,6 @@ final class DefaultMask implements Mask {
 
     }
 
-    // TODO test this thoroughly!!!
     private class ComplementIterator implements IntIterator {
 
 

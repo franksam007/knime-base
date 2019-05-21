@@ -207,22 +207,18 @@ final class ShapSampler {
         }
 
         void enumerateSubsets(final Consumer<ShapSample> sink) {
-            for (int subsetSize = 1; subsetSize < m_weightVector.getNumSubsetSizes(); subsetSize++) {
-                long numSubsets = CombinatoricsUtils.binomialCoefficient(m_numFeatures, subsetSize);
-                boolean isPaired = m_weightVector.isPairedSubsetSize(subsetSize);
-                if (isPaired) {
-                    numSubsets *= 2;
-                }
+            for (int subsetSize = 1; subsetSize <= m_weightVector.getNumSubsetSizes(); subsetSize++) {
+                final long binom = CombinatoricsUtils.binomialCoefficient(m_numFeatures, subsetSize);
+                final long numSubsets = m_weightVector.isPairedSubsetSize(subsetSize) ? binom * 2 : binom;
                 if (m_numSamplesLeft * m_weightVector.getScaled(subsetSize) / numSubsets >= 1.0 - 1e-8) {
                     m_numFullSubsetSizes++;
                     m_numSamplesLeft -= numSubsets;
                     m_subsetsAdded += numSubsets;
                     if (m_weightVector.getScaled(subsetSize) < 1.0) {
-                        // TODO check if this is numerically stable.. Maybe this can also happen inside of WeightVector
                         m_weightVector.rescale(1.0 / (1.0 - m_weightVector.getScaled(subsetSize)));
                     }
-                    final double weight = m_weightVector.get(subsetSize) / numSubsets;
-                    addAllSubsets(sink, subsetSize, isPaired, weight);
+                    final double weight = m_weightVector.get(subsetSize) / binom;
+                    addAllSubsets(sink, subsetSize, weight);
                 } else {
                     break;
                 }
@@ -233,14 +229,13 @@ final class ShapSampler {
             return m_subsetsAdded;
         }
 
-        private void addAllSubsets(final Consumer<ShapSample> sink, final int subsetSize, final boolean isPaired,
-            final double weight) {
+        private void addAllSubsets(final Consumer<ShapSample> sink, final int subsetSize, final double weight) {
             final Iterator<Mask> masks = m_maskFactory.allMasks(subsetSize);
             while (masks.hasNext()) {
                 final Mask mask = masks.next();
                 final ShapSample sample = new ShapSample(mask, weight, m_subsetReplacer.replace(m_roi, mask));
                 sink.accept(sample);
-                if (isPaired) {
+                if (m_weightVector.isPairedSubsetSize(subsetSize)) {
                     final Mask complementMask = mask.getComplement();
                     final ShapSample complement =
                         new ShapSample(complementMask, weight, m_subsetReplacer.replace(m_roi, complementMask));

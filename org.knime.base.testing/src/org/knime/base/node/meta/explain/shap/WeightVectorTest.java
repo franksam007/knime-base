@@ -44,97 +44,73 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 8, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 21, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class WeightVector {
+public class WeightVectorTest {
 
-    private final double[] m_weights;
+    private WeightVector m_testInstance;
 
-    private final int m_numPairedSubsetSizes;
+    private static final double[] EXPECTED = new double[]{8.0 / 11.0, 3.0 / 11.0};
 
-    private double m_scaler = 1.0;
+    private static final double[] EXPECTED_TAIL_DISTRIBUTION = new double[] {4.0 / 7.0, 3.0 / 7.0};
 
-
-    WeightVector(final int numFeatures) {
-        final double featuresMinus1 = numFeatures - 1.0;
-        final int numSubsetSizes = (int)Math.ceil(featuresMinus1 / 2.0);
-        m_numPairedSubsetSizes = (int)Math.floor(featuresMinus1 / 2.0);
-        final double[] weights = new double[numSubsetSizes];
-        double weightSum = 0.0;
-        for (int i = 0; i < weights.length; i++) {
-            final int currentSubsetSize = i + 1;
-            double weight = featuresMinus1 / (currentSubsetSize * (numFeatures - currentSubsetSize));
-            if (i < m_numPairedSubsetSizes) {
-                weight *= 2;
-            }
-            weightSum += weight;
-            weights[i] = weight;
-        }
-        assert weightSum > 0.0;
-        for (int i = 0; i < weights.length; i++) {
-            weights[i] /= weightSum;
-        }
-        m_weights = weights;
+    @Before
+    public void init() {
+        m_testInstance = new WeightVector(4);
     }
 
-    double getScaled(final int subsetSize) {
-        return getInternal(subsetSize) * m_scaler;
+    @Test
+    public void testScaling() throws Exception {
+        assertEquals(EXPECTED[0], m_testInstance.getScaled(1), 1e-5);
+        assertEquals(EXPECTED[1], m_testInstance.getScaled(2), 1e-5);
+        m_testInstance.rescale(2.0);
+        assertEquals(EXPECTED[0] * 2, m_testInstance.getScaled(1), 1e-5);
+        assertEquals(EXPECTED[1] * 2, m_testInstance.getScaled(2), 1e-5);
+        m_testInstance.resetScale();
+        assertEquals(EXPECTED[0], m_testInstance.getScaled(1), 1e-5);
+        assertEquals(EXPECTED[1], m_testInstance.getScaled(2), 1e-5);
     }
 
-    private double getInternal(final int subsetSize) {
-        final int idx = subsetSize - 1;
-        return m_weights[idx];
+    @Test
+    public void testGet() throws Exception {
+        assertEquals(EXPECTED[0] / 2, m_testInstance.get(1), 1e-5);
+        assertEquals(EXPECTED[1], m_testInstance.get(2), 1e-5);
     }
 
-    double get(final int subsetSize) {
-        final double weight = getInternal(subsetSize);
-        return isPairedSubsetSize(subsetSize) ? weight / 2 : weight;
+    @Test
+    public void testGetWeightLeft() throws Exception {
+        assertEquals(1.0, m_testInstance.getWeightLeft(0), 1e-5);
+        assertEquals(EXPECTED[1], m_testInstance.getWeightLeft(1), 1e-5);
     }
 
-    double[] getTailDistribution(final int from) {
-        final double[] probs = new double[m_weights.length - from];
-        double sum = 0.0;
-        for (int i = 0; i < probs.length; i++) {
-            final int subsetSize = from + i + 1;
-            final double val = get(subsetSize);
-            sum += val;
-            probs[i] = val;
-        }
-        assert sum > 0.0 : "The sum of the remaining weights is 0 in which case this method should never be invoked.";
-        for (int i = 0; i < probs.length; i++) {
-            probs[i] /= sum;
-        }
-        return probs;
+    @Test
+    public void testIsPairedSubsetSize() throws Exception {
+        assertTrue(m_testInstance.isPairedSubsetSize(1));
+        assertFalse(m_testInstance.isPairedSubsetSize(2));
     }
 
-    double getWeightLeft(final int from) {
-        double sum = 0.0;
-        for (int i = from; i < m_weights.length; i++) {
-            sum += m_weights[i];
-        }
-        return sum;
+    @Test
+    public void testGetNumSubsetSizes() throws Exception {
+        assertEquals(2, m_testInstance.getNumSubsetSizes());
     }
 
-    boolean isPairedSubsetSize(final int subsetSize) {
-        return subsetSize <= m_numPairedSubsetSizes;
-    }
-
-    int getNumSubsetSizes() {
-        return m_weights.length;
-    }
-
-    void rescale(final double scaler) {
-        m_scaler *= scaler;
-    }
-
-    void resetScale() {
-        m_scaler = 1.0;
+    @Test
+    public void testGetTailDistribution() throws Exception {
+        assertArrayEquals(EXPECTED_TAIL_DISTRIBUTION, m_testInstance.getTailDistribution(0), 1e-5);
     }
 
 }
