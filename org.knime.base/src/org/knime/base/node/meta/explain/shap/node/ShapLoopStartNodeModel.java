@@ -83,7 +83,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
 
     private ShapExplainer m_explainer;
 
-    private ShapSettings m_settings = new ShapSettings();
+    private ShapLoopStartSettings m_settings = new ShapLoopStartSettings();
 
     /**
      * @return the estimator used to create rows in the loop start node
@@ -119,7 +119,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
         if (m_explainer == null) {
             m_explainer = new ShapExplainer(m_settings);
         }
-        return m_explainer.configure(roiSpec, samplingSpec, m_settings);
+        return m_explainer.configureLoopStart(roiSpec, samplingSpec, m_settings);
     }
 
     private static void checkCompatibility(final DataTableSpec roiSpec, final DataTableSpec samplingSpec)
@@ -182,7 +182,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        final ShapSettings cfg = new ShapSettings();
+        final ShapLoopStartSettings cfg = new ShapLoopStartSettings();
         cfg.loadSettingsModel(settings);
     }
 
@@ -191,7 +191,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
      */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_settings = new ShapSettings();
+        m_settings = new ShapLoopStartSettings();
         m_settings.loadSettingsModel(settings);
     }
 

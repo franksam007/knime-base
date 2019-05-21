@@ -48,8 +48,6 @@
  */
 package org.knime.base.node.meta.explain.shap.node;
 
-import java.util.Random;
-
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
@@ -61,133 +59,52 @@ import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class ShapSettings {
+public class ShapLoopEndSettings {
+
 
     /**
      *
      */
-    private static final String CFG_SEED = "seed";
-
-    /**
-     *
-     */
-    private static final String CFG_USE_SEED = "useSeed";
-
-    /**
-     *
-     */
-    private static final String CFG_EXPLANATION_SET_SIZE = "explanationSetSize";
+    private static final String CFG_PREDICTION_COLUMNS = "predictionColumns";
 
     private static final String CFG_DONT_USE_ELEMENT_NAMES = "dontUseElementNames";
 
-    /**
-     *
-     */
-    private static final int DEF_EXPLANATION_SET_SIZE = 1000;
-
-    private static final String CFG_FEATURE_COLS = "featureColumns";
-
-    private int m_explanationSetSize = 1000;
-
-    private boolean m_useSeed = false;
-
-    private long m_seed = newSeed();
-
     private boolean m_dontUseElementNames = false;
 
-    private DataColumnSpecFilterConfiguration m_featureCols = createFeatureCols();
+    private DataColumnSpecFilterConfiguration m_predictionCols = createPredictionCols();
 
     void loadSettingsDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
-        m_explanationSetSize = settings.getInt(CFG_EXPLANATION_SET_SIZE, DEF_EXPLANATION_SET_SIZE);
-        m_useSeed = settings.getBoolean(CFG_USE_SEED, false);
-        m_seed = settings.getLong(CFG_SEED, newSeed());
-        m_featureCols.loadConfigurationInDialog(settings, inSpec);
+        m_predictionCols.loadConfigurationInDialog(settings, inSpec);
         m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES, false);
     }
 
     void loadSettingsModel(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_explanationSetSize = settings.getInt(CFG_EXPLANATION_SET_SIZE);
-        m_useSeed = settings.getBoolean(CFG_USE_SEED);
-        m_seed = settings.getLong(CFG_SEED);
-        m_featureCols.loadConfigurationInModel(settings);
+        m_predictionCols.loadConfigurationInModel(settings);
         m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES);
     }
 
     void saveSettings(final NodeSettingsWO settings) {
-        settings.addInt(CFG_EXPLANATION_SET_SIZE, m_explanationSetSize);
-        settings.addBoolean(CFG_USE_SEED, m_useSeed);
-        settings.addLong(CFG_SEED, m_seed);
-        m_featureCols.saveConfiguration(settings);
+        m_predictionCols.saveConfiguration(settings);
         settings.addBoolean(CFG_DONT_USE_ELEMENT_NAMES, m_dontUseElementNames);
     }
 
 
     /**
-     * @return the explanationDatasetSize
-     */
-    public int getExplanationSetSize() {
-        return m_explanationSetSize;
-    }
-
-    /**
-     * @param explanationDatasetSize the explanationDatasetSize to set
-     */
-    void setExplanationSetSize(final int explanationDatasetSize) {
-        m_explanationSetSize = explanationDatasetSize;
-    }
-
-    /**
-     * @return the useSeed
-     */
-    public boolean isUseSeed() {
-        return m_useSeed;
-    }
-
-    /**
-     * @param useSeed the useSeed to set
-     */
-    void setUseSeed(final boolean useSeed) {
-        m_useSeed = useSeed;
-    }
-
-    /**
-     * @return the seed
-     */
-    public long getSeed() {
-        return isUseSeed() ? getManualSeed() : newSeed();
-    }
-
-    long getManualSeed() {
-        return m_seed;
-    }
-
-    /**
-     * @param seed the seed to set
-     */
-    void setSeed(final long seed) {
-        m_seed = seed;
-    }
-
-    /**
      * @return the featureCols
      */
     public DataColumnSpecFilterConfiguration getFeatureCols() {
-        return m_featureCols;
+        return m_predictionCols;
     }
 
     /**
      * @param featureCols the featureCols to set
      */
     void setFeatureCols(final DataColumnSpecFilterConfiguration featureCols) {
-        m_featureCols = featureCols;
+        m_predictionCols = featureCols;
     }
 
-    private static DataColumnSpecFilterConfiguration createFeatureCols() {
-        return new DataColumnSpecFilterConfiguration(CFG_FEATURE_COLS);
-    }
-
-    private static long newSeed() {
-        return new Random().nextLong();
+    private static DataColumnSpecFilterConfiguration createPredictionCols() {
+        return new DataColumnSpecFilterConfiguration(CFG_PREDICTION_COLUMNS);
     }
 
     /**

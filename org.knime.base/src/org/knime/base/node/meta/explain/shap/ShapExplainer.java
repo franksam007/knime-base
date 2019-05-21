@@ -52,7 +52,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.knime.base.node.meta.explain.feature.FeatureManager;
-import org.knime.base.node.meta.explain.shap.node.ShapSettings;
+import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings;
+import org.knime.base.node.meta.explain.shap.node.ShapLoopStartSettings;
 import org.knime.base.node.meta.explain.util.DefaultRandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.RandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.TablePreparer;
@@ -78,7 +79,9 @@ public class ShapExplainer {
 
     private final FeatureManager m_featureManager;
 
-    private ShapSettings m_settings;
+    private ShapLoopStartSettings m_settings;
+
+    private ShapLoopEndSettings m_endSettings;
 
     private ShapSampler m_sampler;
 
@@ -97,7 +100,7 @@ public class ShapExplainer {
     /**
      * @param settings
      */
-    public ShapExplainer(final ShapSettings settings) {
+    public ShapExplainer(final ShapLoopStartSettings settings) {
         m_settings = settings;
         m_featureTablePreparer = new TablePreparer(settings.getFeatureCols(), "feature");
         // TODO add the treat collections as single feature flag to ShapSettings
@@ -156,8 +159,9 @@ public class ShapExplainer {
      *         the surrogate model
      * @throws InvalidSettingsException if any feature columns are missing from <b>samplingSpec</b>
      */
-    public DataTableSpec[] configure(final DataTableSpec roiSpec, final DataTableSpec samplingSpec,
-        final ShapSettings settings) throws InvalidSettingsException {
+    public DataTableSpec[] configureLoopStart(final DataTableSpec roiSpec, final DataTableSpec samplingSpec,
+        final ShapLoopStartSettings settings) throws InvalidSettingsException {
+        // TODO remove second output spec
         m_settings = settings;
         m_featureTablePreparer.updateSpecs(roiSpec, settings.getFeatureCols());
         m_featureTablePreparer.checkSpec(samplingSpec);
@@ -174,6 +178,17 @@ public class ShapExplainer {
             specs[1] = createDataSpec();
         }
         return specs;
+    }
+
+    public DataTableSpec configureLoopEnd(final DataTableSpec predSpec, final ShapLoopEndSettings settings) {
+        m_endSettings = settings;
+
+        //TODO
+        return null;
+    }
+
+    private void updateLoopEndSettings(final ShapLoopEndSettings settings) {
+        m_endSettings = settings;
     }
 
     private DataTableSpec createDataSpec() {

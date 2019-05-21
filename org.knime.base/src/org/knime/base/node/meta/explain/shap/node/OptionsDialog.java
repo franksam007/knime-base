@@ -161,7 +161,7 @@ class OptionsDialog {
         panel.add(component, gbc);
     }
 
-    void saveSettingsTo(final ShapSettings cfg) throws InvalidSettingsException {
+    void saveSettingsTo(final ShapLoopStartSettings cfg) throws InvalidSettingsException {
         m_featureColumns.saveConfiguration(cfg.getFeatureCols());
         cfg.setExplanationSetSize((int)m_explanationSetSize.getValue());
         cfg.setSeed(getSeedAsLong());
@@ -177,7 +177,7 @@ class OptionsDialog {
         }
     }
 
-    void loadSettingsFrom(final ShapSettings cfg, final DataTableSpec inSpec) {
+    void loadSettingsFrom(final ShapLoopStartSettings cfg, final DataTableSpec inSpec) {
         m_featureColumns.loadConfiguration(cfg.getFeatureCols(), inSpec);
         m_explanationSetSize.setValue(cfg.getExplanationSetSize());
         m_seedBox.setText(cfg.getManualSeed() + "");

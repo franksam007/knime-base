@@ -48,48 +48,103 @@
  */
 package org.knime.base.node.meta.explain.shap.node;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.node.BufferedDataTable;
+import org.knime.core.node.CanceledExecutionException;
+import org.knime.core.node.ExecutionContext;
+import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.workflow.LoopEndNode;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-class ShapLoopStartNodeDialogPane extends NodeDialogPane {
+public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
 
-    private final OptionsDialog m_options = new OptionsDialog();
+
 
     /**
-     *
+     * Constructor
      */
-    public ShapLoopStartNodeDialogPane() {
-        addTab("Options", m_options.getPanel());
+    public ShapLoopEndNodeModel() {
+        super(1, 1);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        final ShapLoopStartSettings cfg = new ShapLoopStartSettings();
-        m_options.saveSettingsTo(cfg);
-        cfg.saveSettings(settings);
+    protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
+        // TODO
+        return null;
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
+        throws Exception {
+        // TODO
+        return null;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
-        throws NotConfigurableException {
-        final DataTableSpec inSpec = specs[0];
-        final ShapLoopStartSettings cfg = new ShapLoopStartSettings();
-        cfg.loadSettingsDialog(settings, inSpec);
-        m_options.loadSettingsFrom(cfg, inSpec);
+    protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec)
+        throws IOException, CanceledExecutionException {
+        // nothing to do here
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void saveInternals(final File nodeInternDir, final ExecutionMonitor exec)
+        throws IOException, CanceledExecutionException {
+        // nothing to do here
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void saveSettingsTo(final NodeSettingsWO settings) {
+        // currently receives its settings from the loop start node
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        // currently receives its settings from the loop start node
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
+        // currently receives its settings from the loop start node
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void reset() {
+        // currently nothing to reset
     }
 
 }
