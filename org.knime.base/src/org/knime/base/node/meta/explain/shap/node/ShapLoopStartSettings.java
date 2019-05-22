@@ -51,10 +51,12 @@ package org.knime.base.node.meta.explain.shap.node;
 import java.util.Random;
 
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.DoubleValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
+import org.knime.core.node.util.filter.column.DataTypeColumnFilter;
 
 /**
  * TODO unify settings for Shapley Values and ModelExplainer
@@ -72,6 +74,8 @@ public class ShapLoopStartSettings {
      *
      */
     private static final String CFG_USE_SEED = "useSeed";
+
+    private static final String CFG_PREDICTION_COLS = "predictionColumns";
 
     /**
      *
@@ -97,11 +101,14 @@ public class ShapLoopStartSettings {
 
     private DataColumnSpecFilterConfiguration m_featureCols = createFeatureCols();
 
+    private DataColumnSpecFilterConfiguration m_predictionCols = createPredictionCols();
+
     void loadSettingsDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
         m_explanationSetSize = settings.getInt(CFG_EXPLANATION_SET_SIZE, DEF_EXPLANATION_SET_SIZE);
         m_useSeed = settings.getBoolean(CFG_USE_SEED, false);
         m_seed = settings.getLong(CFG_SEED, newSeed());
         m_featureCols.loadConfigurationInDialog(settings, inSpec);
+        m_predictionCols.loadConfigurationInDialog(settings, inSpec);
         m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES, false);
     }
 
@@ -110,6 +117,7 @@ public class ShapLoopStartSettings {
         m_useSeed = settings.getBoolean(CFG_USE_SEED);
         m_seed = settings.getLong(CFG_SEED);
         m_featureCols.loadConfigurationInModel(settings);
+        m_predictionCols.loadConfigurationInModel(settings);
         m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES);
     }
 
@@ -118,6 +126,7 @@ public class ShapLoopStartSettings {
         settings.addBoolean(CFG_USE_SEED, m_useSeed);
         settings.addLong(CFG_SEED, m_seed);
         m_featureCols.saveConfiguration(settings);
+        m_predictionCols.saveConfiguration(settings);
         settings.addBoolean(CFG_DONT_USE_ELEMENT_NAMES, m_dontUseElementNames);
     }
 
@@ -186,6 +195,11 @@ public class ShapLoopStartSettings {
         return new DataColumnSpecFilterConfiguration(CFG_FEATURE_COLS);
     }
 
+    @SuppressWarnings("unchecked")
+    private static DataColumnSpecFilterConfiguration createPredictionCols() {
+        return new DataColumnSpecFilterConfiguration(CFG_PREDICTION_COLS, new DataTypeColumnFilter(DoubleValue.class));
+    }
+
     private static long newSeed() {
         return new Random().nextLong();
     }
@@ -195,6 +209,20 @@ public class ShapLoopStartSettings {
      */
     public boolean isDontUseElementNames() {
         return m_dontUseElementNames;
+    }
+
+    /**
+     * @return the predictionCols
+     */
+    public DataColumnSpecFilterConfiguration getPredictionCols() {
+        return m_predictionCols;
+    }
+
+    /**
+     * @param predictionCols the predictionCols to set
+     */
+    void setPredictionCols(final DataColumnSpecFilterConfiguration predictionCols) {
+        m_predictionCols = predictionCols;
     }
 
 }

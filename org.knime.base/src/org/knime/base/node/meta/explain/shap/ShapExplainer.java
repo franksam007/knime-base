@@ -61,11 +61,14 @@ import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataTableSpecCreator;
+import org.knime.core.data.RowIteratorBuilder;
 import org.knime.core.data.RowKey;
+import org.knime.core.data.container.CloseableRowIterator;
 import org.knime.core.data.def.DoubleCell;
 import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.ExecutionContext;
+import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.util.CheckUtils;
 
@@ -76,6 +79,8 @@ import org.knime.core.node.util.CheckUtils;
 public class ShapExplainer {
 
     private final TablePreparer m_featureTablePreparer;
+
+    private final TablePreparer m_predictionTablePreparer;
 
     private final FeatureManager m_featureManager;
 
@@ -97,12 +102,15 @@ public class ShapExplainer {
 
     private String m_weightColumnName;
 
+    private double[] m_nullPredictions;
+
     /**
      * @param settings
      */
     public ShapExplainer(final ShapLoopStartSettings settings) {
         m_settings = settings;
         m_featureTablePreparer = new TablePreparer(settings.getFeatureCols(), "feature");
+        m_predictionTablePreparer = new TablePreparer(settings.getPredictionCols(), "prediction");
         // TODO add the treat collections as single feature flag to ShapSettings
         m_featureManager = new FeatureManager(false, m_settings.isDontUseElementNames());
     }
@@ -181,7 +189,7 @@ public class ShapExplainer {
     }
 
     public DataTableSpec configureLoopEnd(final DataTableSpec predSpec, final ShapLoopEndSettings settings) {
-        m_endSettings = settings;
+        updateLoopEndSettings(settings);
 
         //TODO
         return null;
@@ -269,6 +277,11 @@ public class ShapExplainer {
         m_sampler = new ShapSampler(subsetReplacer, new DefaultMaskFactory(numFeatures),
             m_settings.getExplanationSetSize(), numFeatures, rdgFactory);
         m_rowIterator = featureTable.iterator();
+    }
+
+    private void intializeNullPredictions(final BufferedDataTable samplingTable, final ExecutionMonitor monitor) {
+        RowIteratorBuilder<? extends CloseableRowIterator> iterBuilder = samplingTable.iteratorBuilder();
+
     }
 
 }

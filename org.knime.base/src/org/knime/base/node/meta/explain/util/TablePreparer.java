@@ -62,7 +62,7 @@ import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class TablePreparer {
+public final  class TablePreparer {
 
     private ColumnSetManager m_colManager;
 
@@ -145,5 +145,6 @@ public class TablePreparer {
     public int getNumColumns() {
         return m_colManager.getNumColumns();
     }
+
 
 }
