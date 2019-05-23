@@ -74,10 +74,6 @@ final class ShapWLS {
     double[] getWLSCoefficients(final RealMatrix masks, final RealVector pred, final int dim, final double fx,
         final RealVector weights) {
 
-        System.out.println("mask dims: " + masks.getRowDimension() + ", " + masks.getColumnDimension());
-        System.out.println("pred dim: " + pred.getDimension());
-        System.out.println("weights dim: " + weights.getDimension());
-
         final RealVector y = pred.map(m_link);
 
         final RealVector lastNonZero = masks.getColumnVector(masks.getColumnDimension() - 1);
@@ -93,27 +89,14 @@ final class ShapWLS {
         RealMatrix etmp = masks.getSubMatrix(0, masks.getRowDimension() - 1, 0, masks.getColumnDimension() - 2);
 
         ShapMatrixUtils.subtractVec(etmp, lastNonZero);
-        System.out.println("etmp shape: " + etmp.getRowDimension() + ", " + etmp.getColumnDimension());
-
-        // X^T dot W where W is the diagonal matrix with the weights on the diagonal
-//        RealMatrix xT = x.transpose();
 
         RealMatrix tmp = etmp.copy();
-        System.out.println("tmp shape: " + tmp.getRowDimension() + ", " + tmp.getColumnDimension());
 
         ShapMatrixUtils.scaleVec(tmp, weights);
 
         RealMatrix tmp2 = MatrixUtils.inverse(tmp.transpose().multiply(etmp));
 
-        System.out.println("tmp2 shape: " + tmp2.getRowDimension() + ", " + tmp2.getColumnDimension());
-
         RealVector w = tmp2.operate(tmp.transpose().operate(eyAdj2));
-
-//        RealMatrix xTw = xT.multiply(MatrixUtils.createRealDiagonalMatrix(weights.toArray()));
-//
-//        RealMatrix inverse = MatrixUtils.inverse(xTw.multiply(x));
-
-//        RealVector w = inverse.multiply(xTw).operate(eyAdj2);
 
         final double[] phi = new double[w.getDimension() + 1];
 

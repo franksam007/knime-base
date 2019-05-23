@@ -79,8 +79,7 @@ public class ShapLoopEndNodeFactory extends NodeFactory<ShapLoopEndNodeModel> {
      * {@inheritDoc}
      */
     @Override
-    public NodeView<ShapLoopEndNodeModel> createNodeView(final int viewIndex,
-        final ShapLoopEndNodeModel nodeModel) {
+    public NodeView<ShapLoopEndNodeModel> createNodeView(final int viewIndex, final ShapLoopEndNodeModel nodeModel) {
         return null;
     }
 
@@ -89,7 +88,7 @@ public class ShapLoopEndNodeFactory extends NodeFactory<ShapLoopEndNodeModel> {
      */
     @Override
     protected boolean hasDialog() {
-        return false;
+        return true;
     }
 
     /**
@@ -97,7 +96,7 @@ public class ShapLoopEndNodeFactory extends NodeFactory<ShapLoopEndNodeModel> {
      */
     @Override
     protected NodeDialogPane createNodeDialogPane() {
-        return null;
+        return new ShapLoopNodeDialogPane<>(new EndOptionsDialog(), ShapLoopEndSettings::new);
     }
 
 }

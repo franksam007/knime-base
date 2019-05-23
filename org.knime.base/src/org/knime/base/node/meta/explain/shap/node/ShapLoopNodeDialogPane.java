@@ -44,107 +44,58 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Apr 15, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   15.03.2016 (adrian): created
  */
 package org.knime.base.node.meta.explain.shap.node;
 
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.function.Supplier;
+
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
+import org.knime.core.node.NotConfigurableException;
 
 /**
- * TODO unify settings for Shapley Values and ModelExplainer
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class ShapLoopEndSettings implements ShapSettings {
+class ShapLoopNodeDialogPane <S extends ShapSettings> extends NodeDialogPane {
 
-    private static final String CFG_PREDICTION_COLUMNS = "predictionColumns";
+    private final Supplier<S> m_settingsSupplier;
 
-    private static final String CFG_USE_ELEMENT_NAMES = "useElementNames";
-
-    private boolean m_useElementNames = false;
-
-    private DataColumnSpecFilterConfiguration m_predictionCols = createPredictionCols();
-
-
-    @Override
-    public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
-        m_predictionCols.loadConfigurationInDialog(settings, inSpec);
-        m_useElementNames = settings.getBoolean(CFG_USE_ELEMENT_NAMES, false);
-    }
-
-    @Override
-    public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_predictionCols.loadConfigurationInModel(settings);
-        m_useElementNames = settings.getBoolean(CFG_USE_ELEMENT_NAMES);
-    }
-
-    @Override
-    public void saveSettings(final NodeSettingsWO settings) {
-        m_predictionCols.saveConfiguration(settings);
-        settings.addBoolean(CFG_USE_ELEMENT_NAMES, m_useElementNames);
-    }
+    private final OptionsDialog<S> m_options;
 
     /**
-     * @return the featureCols
+     *
      */
-    public DataColumnSpecFilterConfiguration getPredictionCols() {
-        return m_predictionCols;
-    }
-
-    /**
-     * @param featureCols the featureCols to set
-     */
-    void setPredictionCols(final DataColumnSpecFilterConfiguration featureCols) {
-        m_predictionCols = featureCols;
-    }
-
-    private static DataColumnSpecFilterConfiguration createPredictionCols() {
-        return new DataColumnSpecFilterConfiguration(CFG_PREDICTION_COLUMNS);
-    }
-
-    /**
-     * @return the dontUseElementNames
-     */
-    public boolean isUseElementNames() {
-        return m_useElementNames;
-    }
-
-    void setUseElementNames(final boolean useElementNames) {
-        m_useElementNames = useElementNames;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj instanceof ShapLoopEndSettings) {
-            final ShapLoopEndSettings other = (ShapLoopEndSettings)obj;
-            return this.m_predictionCols.equals(other.m_predictionCols)
-                && this.m_useElementNames == other.m_useElementNames;
-            // we don't care if the loading flag is the same as it's just an indicator
-        }
-        return false;
+    public ShapLoopNodeDialogPane(final OptionsDialog<S> dialog, final Supplier<S> settingsSupplier) {
+        m_options = dialog;
+        m_settingsSupplier = settingsSupplier;
+        addTab("Options", m_options.getPanel());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int hashCode() {
-        final HashCodeBuilder builder = new HashCodeBuilder();
-        builder.append(m_useElementNames);
-        builder.append(m_predictionCols);
-        return builder.toHashCode();
+    protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
+        final S cfg = m_settingsSupplier.get();
+        m_options.saveSettingsTo(cfg);
+        cfg.saveSettings(settings);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
+        throws NotConfigurableException {
+        final DataTableSpec inSpec = specs[0];
+        final S cfg = m_settingsSupplier.get();
+        cfg.loadSettingsInDialog(settings, inSpec);
+        m_options.loadSettingsFrom(cfg, inSpec);
     }
 
 }

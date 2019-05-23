@@ -86,7 +86,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
     private ShapLoopStartSettings m_settings = new ShapLoopStartSettings();
 
     /**
-     * @return the estimator used to create rows in the loop start node
+     * @return the explainer used to create rows in the loop start node
      */
     ShapExplainer getExplainer() {
         if (m_explainer == null) {
@@ -105,7 +105,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
      *
      */
     public ShapLoopStartNodeModel() {
-        super(NUM_INPORTS, 2);
+        super(NUM_INPORTS, 1);
     }
 
     /**
@@ -119,7 +119,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
         if (m_explainer == null) {
             m_explainer = new ShapExplainer(m_settings);
         }
-        return m_explainer.configureLoopStart(roiSpec, samplingSpec, m_settings);
+        return new DataTableSpec[] {m_explainer.configureLoopStart(roiSpec, samplingSpec, m_settings)};
     }
 
     private static void checkCompatibility(final DataTableSpec roiSpec, final DataTableSpec samplingSpec)
@@ -136,11 +136,11 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
         throws Exception {
         final BufferedDataTable roiTable = inData[ROI_PORT_IDX];
         final BufferedDataTable samplingTable = inData[SAMPLING_DATA_PORT_IDX];
-        final BufferedDataTable[] result = m_explainer.executeLoopStart(roiTable, samplingTable, exec);
+        final BufferedDataTable result = m_explainer.executeLoopStart(roiTable, samplingTable, exec);
         pushFlowVariableInt("currentIteration", m_explainer.getCurrentIteration());
         pushFlowVariableInt("maxIterations", m_explainer.getMaxIterations());
         pushFlowVariableString("weightColumnName", m_explainer.getWeightColumnName());
-        return result;
+        return new BufferedDataTable[] {result};
     }
 
     /**
@@ -183,7 +183,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
         final ShapLoopStartSettings cfg = new ShapLoopStartSettings();
-        cfg.loadSettingsModel(settings);
+        cfg.loadSettingsInModel(settings);
     }
 
     /**
@@ -192,7 +192,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_settings = new ShapLoopStartSettings();
-        m_settings.loadSettingsModel(settings);
+        m_settings.loadSettingsInModel(settings);
     }
 
     /**

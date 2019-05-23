@@ -81,11 +81,16 @@ public final class FeatureManager {
      */
     private DataTableSpec m_featureSpec;
 
+    /**
+     * The current row
+     */
+    private DataRow m_row;
+
     private final List<FeatureHandlerFactory> m_featureHandlerFactories = new ArrayList<>();
 
     private final boolean m_treatAllAsSingleFeature;
 
-    private final boolean m_dontUseElementNames;
+    private boolean m_useElementNames;
 
     private boolean m_namesFullyInitialized;
 
@@ -102,7 +107,20 @@ public final class FeatureManager {
      */
     public FeatureManager(final boolean treatCollectionsAsSingleFeature, final boolean dontUseElementNames) {
         m_treatAllAsSingleFeature = treatCollectionsAsSingleFeature;
-        m_dontUseElementNames = dontUseElementNames;
+        m_useElementNames = dontUseElementNames;
+    }
+
+    /**
+     * @param useElementNames whether to use element names for collections or not
+     */
+    public void setUseElementNames(final boolean useElementNames) {
+
+        if (useElementNames != m_useElementNames && m_featureSpec != null) {
+            // we currently have the wrong feature names so we have to update
+            tryToInitializeFeatureNames(m_featureSpec);
+            updateNumFeatures(m_row);
+        }
+        m_useElementNames = useElementNames;
     }
 
     /**
@@ -128,7 +146,7 @@ public final class FeatureManager {
     }
 
     private List<String> flattenNames() {
-        return m_names.stream().flatMap(c -> c.stream()).collect(Collectors.toList());
+        return m_names.stream().flatMap(List::stream).collect(Collectors.toList());
     }
 
     /**
@@ -192,6 +210,7 @@ public final class FeatureManager {
      */
     public boolean updateWithRow(final DataRow row) {
         checkInitialized();
+        m_row = row;
         CheckUtils.checkArgument(m_featureHandlerFactories.size() == row.getNumCells(),
             "The provided row %s has the wrong number of cells. Expected %s cells but row has %s cells.", row,
             m_featureHandlerFactories.size(), row.getNumCells());
@@ -280,7 +299,7 @@ public final class FeatureManager {
             List<String> names = factory.getFeatureNames(colSpec);
             if (names.isEmpty()) {
                 namesFullyInitialized = false;
-            } else if (m_dontUseElementNames && names.size() > 1) {
+            } else if (m_useElementNames && names.size() > 1) {
                 names = createCollectionNames(colSpec.getName(), names.size());
             }
             m_names.add(names);

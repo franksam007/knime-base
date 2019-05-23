@@ -44,24 +44,79 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 23, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   14.03.2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap.node;
 
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+
+import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.util.filter.column.DataColumnSpecFilterPanel;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface OptionsDialog<S extends ShapSettings> {
+class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
 
-    JPanel getPanel();
+    private final DataColumnSpecFilterPanel m_predictionColumns = new DataColumnSpecFilterPanel();
 
-    void saveSettingsTo(final S settings) throws InvalidSettingsException;
+    private final JCheckBox m_useElementNames = new JCheckBox("Use element names for collection features");
 
-    void loadSettingsFrom(final S settings, final DataTableSpec inSpec);
+
+    @Override
+    public JPanel getPanel() {
+        // === Options Tab ===
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        m_predictionColumns.setBorder(BorderFactory.createTitledBorder("Target columns"));
+        panel.add(m_predictionColumns, gbc);
+
+        gbc.gridy++;
+        gbc.weighty = 0;
+        gbc.weightx = 0;
+        panel.add(createOutputOptionsPanel(), gbc);
+
+        return panel;
+    }
+
+    private JPanel createOutputOptionsPanel() {
+        final JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createTitledBorder("Output options"));
+        panel.add(m_useElementNames);
+        return panel;
+    }
+
+    private static GridBagConstraints createGbc() {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        return gbc;
+    }
+
+    @Override
+    public void saveSettingsTo(final ShapLoopEndSettings cfg) throws InvalidSettingsException {
+        m_predictionColumns.saveConfiguration(cfg.getPredictionCols());
+    }
+
+    @Override
+    public void loadSettingsFrom(final ShapLoopEndSettings cfg, final DataTableSpec inSpec) {
+        m_predictionColumns.loadConfiguration(cfg.getPredictionCols(), inSpec);
+        m_useElementNames.setSelected(cfg.isUseElementNames());
+    }
+
 }

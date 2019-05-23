@@ -120,7 +120,7 @@ public final class KnimeShapleyValuesEstimator {
         m_featureTablePreparer = new TablePreparer(settings.getFeatureCols(), "feature");
         m_predictionTablePreparer = new TablePreparer(settings.getPredictionCols(), "prediction");
         m_featureManager =
-            new FeatureManager(m_settings.isTreatAllColumnsAsSingleFeature(), m_settings.isDontUseElementNames());
+            new FeatureManager(m_settings.isTreatAllColumnsAsSingleFeature(), !m_settings.isDontUseElementNames());
     }
 
     /**

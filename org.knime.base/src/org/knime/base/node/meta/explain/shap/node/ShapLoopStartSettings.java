@@ -51,29 +51,23 @@ package org.knime.base.node.meta.explain.shap.node;
 import java.util.Random;
 
 import org.knime.core.data.DataTableSpec;
-import org.knime.core.data.DoubleValue;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
-import org.knime.core.node.util.filter.column.DataTypeColumnFilter;
 
 /**
  * TODO unify settings for Shapley Values and ModelExplainer
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class ShapLoopStartSettings {
+public class ShapLoopStartSettings implements ShapSettings {
 
     private static final String CFG_SEED = "seed";
 
     private static final String CFG_USE_SEED = "useSeed";
 
-    private static final String CFG_PREDICTION_COLS = "predictionColumns";
-
     private static final String CFG_EXPLANATION_SET_SIZE = "explanationSetSize";
-
-    private static final String CFG_DONT_USE_ELEMENT_NAMES = "dontUseElementNames";
 
     private static final String CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE = "treatAllColumnsAsSingleFeature";
 
@@ -87,42 +81,36 @@ public class ShapLoopStartSettings {
 
     private long m_seed = newSeed();
 
-    private boolean m_dontUseElementNames = false;
-
     private boolean m_treatAllColumnsAsSingleFeature = false;
 
 
     private DataColumnSpecFilterConfiguration m_featureCols = createFeatureCols();
 
-    private DataColumnSpecFilterConfiguration m_predictionCols = createPredictionCols();
 
-    void loadSettingsDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
+    @Override
+    public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
         m_explanationSetSize = settings.getInt(CFG_EXPLANATION_SET_SIZE, DEF_EXPLANATION_SET_SIZE);
         m_useSeed = settings.getBoolean(CFG_USE_SEED, false);
         m_seed = settings.getLong(CFG_SEED, newSeed());
         m_featureCols.loadConfigurationInDialog(settings, inSpec);
-        m_predictionCols.loadConfigurationInDialog(settings, inSpec);
-        m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES, false);
         m_treatAllColumnsAsSingleFeature = settings.getBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE, false);
     }
 
-    void loadSettingsModel(final NodeSettingsRO settings) throws InvalidSettingsException {
+    @Override
+    public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_explanationSetSize = settings.getInt(CFG_EXPLANATION_SET_SIZE);
         m_useSeed = settings.getBoolean(CFG_USE_SEED);
         m_seed = settings.getLong(CFG_SEED);
         m_featureCols.loadConfigurationInModel(settings);
-        m_predictionCols.loadConfigurationInModel(settings);
-        m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES);
         m_treatAllColumnsAsSingleFeature = settings.getBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE);
     }
 
-    void saveSettings(final NodeSettingsWO settings) {
+    @Override
+    public void saveSettings(final NodeSettingsWO settings) {
         settings.addInt(CFG_EXPLANATION_SET_SIZE, m_explanationSetSize);
         settings.addBoolean(CFG_USE_SEED, m_useSeed);
         settings.addLong(CFG_SEED, m_seed);
         m_featureCols.saveConfiguration(settings);
-        m_predictionCols.saveConfiguration(settings);
-        settings.addBoolean(CFG_DONT_USE_ELEMENT_NAMES, m_dontUseElementNames);
         settings.addBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE, m_treatAllColumnsAsSingleFeature);
     }
 
@@ -191,42 +179,11 @@ public class ShapLoopStartSettings {
         return new DataColumnSpecFilterConfiguration(CFG_FEATURE_COLS);
     }
 
-    @SuppressWarnings("unchecked")
-    private static DataColumnSpecFilterConfiguration createPredictionCols() {
-        return new DataColumnSpecFilterConfiguration(CFG_PREDICTION_COLS, new DataTypeColumnFilter(DoubleValue.class));
-    }
 
     private static long newSeed() {
         return new Random().nextLong();
     }
 
-    /**
-     * @return the dontUseElementNames
-     */
-    public boolean isDontUseElementNames() {
-        return m_dontUseElementNames;
-    }
-
-    /**
-     * @param dontUseElementNames the dontUseElementNames to set
-     */
-    void setDontUseElementNames(final boolean dontUseElementNames) {
-        m_dontUseElementNames = dontUseElementNames;
-    }
-
-    /**
-     * @return the predictionCols
-     */
-    public DataColumnSpecFilterConfiguration getPredictionCols() {
-        return m_predictionCols;
-    }
-
-    /**
-     * @param predictionCols the predictionCols to set
-     */
-    void setPredictionCols(final DataColumnSpecFilterConfiguration predictionCols) {
-        m_predictionCols = predictionCols;
-    }
 
     /**
      * @return the treatAllColumnsAsSingleFeature

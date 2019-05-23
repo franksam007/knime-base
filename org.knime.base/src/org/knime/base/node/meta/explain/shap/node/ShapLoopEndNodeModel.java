@@ -72,12 +72,14 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
 
     private static final String LOOP_NAME = "SHAP Loop";
 
+    private ShapLoopEndSettings m_settings = new ShapLoopEndSettings();
+
 
     /**
      * Constructor
      */
     public ShapLoopEndNodeModel() {
-        super(2, 1);
+        super(1, 1);
     }
 
     private ShapLoopStartNodeModel getLoopStart() throws InvalidSettingsException {
@@ -100,8 +102,7 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
     @Override
     protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
         final ShapExplainer explainer = getExplainer();
-        // TODO possibly add settings
-        return new DataTableSpec[] {explainer.configureLoopEnd(inSpecs[0], inSpecs[1], null)};
+        return new DataTableSpec[] {explainer.configureLoopEnd(inSpecs[0], m_settings)};
     }
 
 
@@ -112,9 +113,8 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
         throws Exception {
         final BufferedDataTable predictionTable = inData[0];
-        final BufferedDataTable maskTable = inData[1];
         final ShapExplainer explainer = getExplainer();
-        explainer.consumePredictions(predictionTable, maskTable, exec);
+        explainer.consumePredictions(predictionTable, exec);
         if (explainer.hasNextIteration()) {
             continueLoop();
             return new BufferedDataTable[1];
@@ -146,7 +146,7 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
      */
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        // currently receives its settings from the loop start node
+        m_settings.saveSettings(settings);
     }
 
     /**
@@ -154,7 +154,7 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        // currently receives its settings from the loop start node
+        new ShapLoopEndSettings().loadSettingsInModel(settings);
     }
 
     /**
@@ -162,7 +162,8 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
      */
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        // currently receives its settings from the loop start node
+        m_settings = new ShapLoopEndSettings();
+        m_settings.loadSettingsInModel(settings);
     }
 
     /**
@@ -170,7 +171,6 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
      */
     @Override
     protected void reset() {
-        // currently nothing to reset
     }
 
 }

@@ -96,7 +96,8 @@ public class ShapLoopStartNodeFactory extends NodeFactory<ShapLoopStartNodeModel
      */
     @Override
     protected NodeDialogPane createNodeDialogPane() {
-        return new ShapLoopStartNodeDialogPane();
+        return new ShapLoopNodeDialogPane<>(new StartOptionsDialog(),
+            ShapLoopStartSettings::new);
     }
 
 }
