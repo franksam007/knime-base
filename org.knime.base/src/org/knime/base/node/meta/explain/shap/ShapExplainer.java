@@ -393,7 +393,7 @@ public class ShapExplainer {
         m_currentShapSamples.clear();
         final Iterator<ShapSample> sampleIterator = m_sampler.createSamples(roi);
         final BufferedDataContainer container = exec.createDataContainer(createInverseSpec());
-        // the first row in each iteration is the roi (the key is changed to make sure it doesn't clash with the names defined below)
+        // the first row in each iteration is the roi
         container.addRowToTable(new DefaultRow(ROI_KEY, roi));
         final long total = m_settings.getExplanationSetSize();
         final double progTotal = total;
