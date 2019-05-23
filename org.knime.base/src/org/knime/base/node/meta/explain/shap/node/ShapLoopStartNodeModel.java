@@ -88,7 +88,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
     /**
      * @return the estimator used to create rows in the loop start node
      */
-    ShapExplainer getEstimator() {
+    ShapExplainer getExplainer() {
         if (m_explainer == null) {
             m_explainer = new ShapExplainer(m_settings);
         }
@@ -136,7 +136,7 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
         throws Exception {
         final BufferedDataTable roiTable = inData[ROI_PORT_IDX];
         final BufferedDataTable samplingTable = inData[SAMPLING_DATA_PORT_IDX];
-        final BufferedDataTable[] result = m_explainer.getNextTables(roiTable, samplingTable, exec);
+        final BufferedDataTable[] result = m_explainer.executeLoopStart(roiTable, samplingTable, exec);
         pushFlowVariableInt("currentIteration", m_explainer.getCurrentIteration());
         pushFlowVariableInt("maxIterations", m_explainer.getMaxIterations());
         pushFlowVariableString("weightColumnName", m_explainer.getWeightColumnName());

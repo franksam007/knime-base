@@ -48,27 +48,37 @@
  */
 package org.knime.base.node.meta.explain.shap;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import org.knime.base.data.filter.column.FilterColumnTable;
+import org.knime.base.node.meta.explain.ExplanationToDataRowConverter;
+import org.knime.base.node.meta.explain.ExplanationToMultiRowConverter;
 import org.knime.base.node.meta.explain.feature.FeatureManager;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopStartSettings;
 import org.knime.base.node.meta.explain.util.DefaultRandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.RandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.TablePreparer;
+import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataRow;
+import org.knime.core.data.DataTable;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataTableSpecCreator;
-import org.knime.core.data.RowIteratorBuilder;
+import org.knime.core.data.DoubleValue;
 import org.knime.core.data.RowKey;
 import org.knime.core.data.container.CloseableRowIterator;
 import org.knime.core.data.def.DoubleCell;
 import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.ExecutionContext;
-import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.util.CheckUtils;
 
@@ -90,11 +100,17 @@ public class ShapExplainer {
 
     private ShapSampler m_sampler;
 
+    private ShapWLS m_shapWLS;
+
     private Iterator<DataRow> m_rowIterator;
+
+    private CloseableRowIterator m_predictionIterator;
 
     private int m_maxIterations;
 
     private int m_currentIteration;
+
+    private int m_samplingTableSize;
 
     private final SampleToRow<ShapSample, RowKey> m_topTableSampleToRow = ShapPredictableSampleToRow.INSTANCE;
 
@@ -102,7 +118,15 @@ public class ShapExplainer {
 
     private String m_weightColumnName;
 
-    private double[] m_nullPredictions;
+    private String m_currentRoi;
+
+    private double[] m_nullFx;
+
+    private double[] m_currentFx;
+
+    private ExplanationToDataRowConverter m_explanationConverter;
+
+    private BufferedDataContainer m_loopEndContainer;
 
     /**
      * @param settings
@@ -124,17 +148,34 @@ public class ShapExplainer {
     }
 
     /**
-     * @return the maximal number of iteration of the LIME loop i.e. the number of rows in the ROI table
+     * @return the maximal number of iteration of the SHAP loop i.e. the number of rows in the ROI table
      */
     public int getMaxIterations() {
         return m_maxIterations;
     }
 
     /**
-     * @return the current iteration of the LIME loop i.e. the index of the current row of interest
+     * @return the current iteration of the SHAP loop i.e. the index of the current row of interest
      */
     public int getCurrentIteration() {
         return m_currentIteration;
+    }
+
+    /**
+     * @return the number of predictions this SHAP loop explains
+     */
+    public int getNumberOfPredictions() {
+        return m_predictionTablePreparer.getNumColumns();
+    }
+
+    public double getNullPrediction(final int idx) {
+        CheckUtils.checkState(m_nullFx != null, "The null predictions have not been initialized, yet.");
+        return m_nullFx[idx];
+    }
+
+    public double getCurrentPrediction(final int idx) {
+        CheckUtils.checkState(m_currentFx != null, "The current predictions have not been initialized, yet");
+        return m_currentFx[idx];
     }
 
     /**
@@ -145,6 +186,18 @@ public class ShapExplainer {
         m_currentIteration = -1;
         m_rowIterator = null;
         m_sampler = null;
+        if (m_predictionIterator != null) {
+            m_predictionIterator.close();
+        }
+        m_predictionIterator = null;
+        m_nullFx = null;
+        m_currentFx = null;
+        m_shapWLS = null;
+        m_currentRoi = null;
+        if (m_loopEndContainer != null) {
+            m_loopEndContainer.close();
+        }
+        m_loopEndContainer = null;
     }
 
     /**
@@ -170,9 +223,9 @@ public class ShapExplainer {
     public DataTableSpec[] configureLoopStart(final DataTableSpec roiSpec, final DataTableSpec samplingSpec,
         final ShapLoopStartSettings settings) throws InvalidSettingsException {
         // TODO remove second output spec
-        m_settings = settings;
-        m_featureTablePreparer.updateSpecs(roiSpec, settings.getFeatureCols());
+        updateSettings(roiSpec, settings);
         m_featureTablePreparer.checkSpec(samplingSpec);
+        m_predictionTablePreparer.checkSpec(samplingSpec);
         final DataTableSpec featureSpec = createInverseSpec();
         m_featureManager.updateWithSpec(featureSpec);
         final DataTableSpec[] specs = new DataTableSpec[2];
@@ -188,11 +241,157 @@ public class ShapExplainer {
         return specs;
     }
 
-    public DataTableSpec configureLoopEnd(final DataTableSpec predSpec, final ShapLoopEndSettings settings) {
-        updateLoopEndSettings(settings);
+    /**
+     * @param roiSpec
+     * @param settings
+     */
+    private void updateSettings(final DataTableSpec roiSpec, final ShapLoopStartSettings settings) {
+        m_settings = settings;
+        m_featureTablePreparer.updateSpecs(roiSpec, settings.getFeatureCols());
+        m_predictionTablePreparer.updateSpecs(roiSpec, m_settings.getPredictionCols());
+        updateExplanationConverter();
+    }
 
-        //TODO
-        return null;
+    private void updateExplanationConverter() {
+        final DataTableSpec tableSpec = m_predictionTablePreparer.getTableSpec();
+        m_explanationConverter = new ExplanationToMultiRowConverter(tableSpec.getColumnNames());
+    }
+
+    public DataTableSpec configureLoopEnd(final DataTableSpec predSpec, final DataTableSpec maskSpec,
+        final ShapLoopEndSettings settings) {
+        updateLoopEndSettings(settings);
+        Optional<List<String>> optionalFeatureNames = m_featureManager.getFeatureNames();
+        // TODO check if the mask table contains all the expected columns (one for the weight and one for each feature)
+        if (!optionalFeatureNames.isPresent()) {
+            // without feature names, we can't configure
+            // can only happen if any collection column has no element names assigned
+            // and the loop start has not been executed, yet
+            return null;
+        }
+        return m_explanationConverter.createSpec(optionalFeatureNames.get());
+    }
+
+    public void consumePredictions(final BufferedDataTable predictedTable, final BufferedDataTable maskTable,
+        final ExecutionContext exec) throws Exception {
+        if (m_loopEndContainer == null) {
+            m_loopEndContainer =
+                exec.createDataContainer(m_explanationConverter.createSpec(getFeatureNamesInLoopEnd()));
+        }
+        final RealMatrix aggregatedPredictions = aggregatePredictionsPerSample(predictedTable, exec);
+        final RealVector shapWeights = extractShapWeights(maskTable);
+        final RealMatrix masks = extractMasks(maskTable);
+        final int numPredictions = aggregatedPredictions.getColumnDimension();
+        List<double[]> coeffsPerTarget = new ArrayList<>(numPredictions);
+        for (int i = 0; i < numPredictions; i++) {
+            coeffsPerTarget.add(m_shapWLS.getWLSCoefficients(masks, aggregatedPredictions.getColumnVector(i), i,
+                m_currentFx[i], shapWeights));
+        }
+        final ShapExplanation explanation = new ShapExplanation(m_currentRoi, coeffsPerTarget);
+        m_explanationConverter.convertAndWrite(explanation, m_loopEndContainer::addRowToTable);
+    }
+
+    /**
+     * @return the table containing the Shapley Values
+     */
+    public BufferedDataTable getLoopEndTable() {
+        CheckUtils.checkState(m_loopEndContainer != null,
+            "The loop end container is null, this indicates a coding error.");
+        CheckUtils.checkState(!m_loopEndContainer.isClosed(),
+            "The loop end container is already closed, this indicates a coding error.");
+        m_loopEndContainer.close();
+        return m_loopEndContainer.getTable();
+    }
+
+    /**
+     * @return
+     */
+    private List<String> getFeatureNamesInLoopEnd() {
+        return m_featureManager.getFeatureNames().orElseThrow(() -> new IllegalStateException(
+            "The feature names must be known after the first execution of the loop start node."));
+    }
+
+    private RealMatrix aggregatePredictionsPerSample(final BufferedDataTable predictedTable,
+        final ExecutionContext exec) throws Exception {
+        final int numPredCols = m_predictionTablePreparer.getNumColumns();
+
+        assert predictedTable.size() % m_samplingTableSize == 0;
+        final int explanationSetSize = getAsInt(predictedTable.size()) / m_samplingTableSize;
+        final double[][] aggregatedPredictions = new double[explanationSetSize][numPredCols];
+        try (final CloseableRowIterator iter =
+            m_predictionTablePreparer.createTable(predictedTable, exec.createSilentSubExecutionContext(0)).iterator()) {
+            int sampleIdx = -1;
+            int i = 0;
+            while (iter.hasNext()) {
+                final DataRow row = iter.next();
+                if (i % m_samplingTableSize == 0) {
+                    sampleIdx++;
+                }
+                for (int j = 0; j < numPredCols; j++) {
+                    // TODO add optional weighting
+                    aggregatedPredictions[sampleIdx][j] +=
+                        ((DoubleValue)row.getCell(j)).getDoubleValue() / m_samplingTableSize;
+                }
+                i++;
+            }
+        }
+
+        return MatrixUtils.createRealMatrix(aggregatedPredictions);
+    }
+
+    private RealVector extractShapWeights(final BufferedDataTable maskTable) {
+        final DataTableSpec spec = maskTable.getDataTableSpec();
+        final DataColumnSpec weightColumnSpec = spec.getColumnSpec(m_weightColumnName);
+        CheckUtils.checkArgument(weightColumnSpec != null, "The mask table must contain the weight column %s.",
+            m_weightColumnName);
+        CheckUtils.checkArgument(weightColumnSpec.getType().isCompatible(DoubleValue.class),
+            "The weight column %s must be numeric.", m_weightColumnName);
+        final DataTable weightTable = new FilterColumnTable(maskTable, m_weightColumnName);
+        final double[] weights = new double[getAsInt(maskTable.size())];
+        int i = 0;
+        for (final DataRow row : weightTable) {
+            weights[i] = ((DoubleValue)row.getCell(0)).getDoubleValue();
+            i++;
+        }
+        return MatrixUtils.createRealVector(weights);
+    }
+
+    private RealMatrix extractMasks(final BufferedDataTable maskTable) {
+        final DataTableSpec spec = maskTable.getDataTableSpec();
+        checkMaskSpecContainsAllFeatures(spec);
+        // TODO check the spec
+        final List<String> featureNames =
+            m_featureManager.getFeatureNames().orElseThrow(() -> new IllegalStateException(
+                "The feature names must be known after the first execution of loop start."));
+        int numFeatures = featureNames.size();
+        final DataTable filtered = new FilterColumnTable(maskTable, featureNames.toArray(new String[numFeatures]));
+        final RealMatrix masks = MatrixUtils.createRealMatrix(getAsInt(maskTable.size()), numFeatures);
+        int i = 0;
+        for (DataRow row : filtered) {
+            for (int j = 0; j < numFeatures; j++) {
+                masks.setEntry(i, j, ((DoubleValue)row.getCell(j)).getDoubleValue());
+            }
+            i++;
+        }
+        return masks;
+    }
+
+    private void checkMaskSpecContainsAllFeatures(final DataTableSpec maskTableSpec) {
+        final List<String> featureNames =
+            m_featureManager.getFeatureNames().orElseThrow(() -> new IllegalStateException(
+                "The feature names must be known after the first execution of loop start."));
+        for (final String name : featureNames) {
+            final DataColumnSpec spec = maskTableSpec.getColumnSpec(name);
+            CheckUtils.checkArgument(spec != null, "The mask table does not contain the feature %s.", name);
+            CheckUtils.checkArgument(spec.getType().isCompatible(DoubleValue.class),
+                "The feature column %s must be numeric.", name);
+        }
+    }
+
+    private static int getAsInt(final long val) {
+        CheckUtils.checkArgument(val <= Integer.MAX_VALUE, "The provided value %s exceeds Integer.MAX_VALUE", val);
+        CheckUtils.checkArgument(val >= Integer.MIN_VALUE, "The provided value %s is smaller than Integer.MIN_VALUE",
+            val);
+        return (int)val;
     }
 
     private void updateLoopEndSettings(final ShapLoopEndSettings settings) {
@@ -232,7 +431,7 @@ public class ShapExplainer {
      * @return the table to predict with the user's model and the table for training the surrogate model
      * @throws Exception
      */
-    public BufferedDataTable[] getNextTables(final BufferedDataTable roiTable, final BufferedDataTable samplingTable,
+    public BufferedDataTable[] executeLoopStart(final BufferedDataTable roiTable, final BufferedDataTable samplingTable,
         final ExecutionContext exec) throws Exception {
         boolean isFirstIteration = false;
         if (m_sampler == null) {
@@ -246,7 +445,10 @@ public class ShapExplainer {
     private BufferedDataTable[] doNextIteration(final ExecutionContext exec) {
         CheckUtils.checkState(m_rowIterator.hasNext(),
             "This method must not be called if there are no more rows left to process.");
-        final Iterator<ShapSample> sampleIterator = m_sampler.createSamples(m_rowIterator.next());
+        final DataRow roi = m_rowIterator.next();
+        m_currentRoi = roi.getKey().getString();
+        updateCurrentFx();
+        final Iterator<ShapSample> sampleIterator = m_sampler.createSamples(roi);
         final BufferedDataContainer topContainer = exec.createDataContainer(createInverseSpec());
         final BufferedDataContainer dataContainer = exec.createDataContainer(createDataSpec());
         final long total = m_settings.getExplanationSetSize();
@@ -263,10 +465,26 @@ public class ShapExplainer {
         return new BufferedDataTable[]{topContainer.getTable(), dataContainer.getTable()};
     }
 
+    private void updateCurrentFx() {
+        CheckUtils.checkState(m_predictionIterator.hasNext(),
+            "Not the same number of rows for predictions and features. This is a bug.");
+        final DataRow fxs = m_predictionIterator.next();
+        if (m_currentFx == null) {
+            m_currentFx = new double[m_predictionTablePreparer.getNumColumns()];
+        }
+        for (int i = 0; i < m_currentFx.length; i++) {
+            // the prediction iterator only contains double values
+            m_currentFx[i] = ((DoubleValue)fxs.getCell(i)).getDoubleValue();
+        }
+    }
+
     private void initialize(final BufferedDataTable roiTable, final BufferedDataTable samplingTable,
         final ExecutionContext exec) throws Exception {
+        initializeNullPredictions(samplingTable, exec.createSubExecutionContext(0.5));
+        initializePredictionIterator(roiTable, exec);
         m_maxIterations = (int)roiTable.size();
         m_currentIteration = 0;
+        m_samplingTableSize = getAsInt(samplingTable.size());
         final BufferedDataTable featureTable =
             m_featureTablePreparer.createTable(roiTable, exec.createSilentSubExecutionContext(0));
         final SubsetReplacer subsetReplacer = new SubsetReplacer(
@@ -279,9 +497,36 @@ public class ShapExplainer {
         m_rowIterator = featureTable.iterator();
     }
 
-    private void intializeNullPredictions(final BufferedDataTable samplingTable, final ExecutionMonitor monitor) {
-        RowIteratorBuilder<? extends CloseableRowIterator> iterBuilder = samplingTable.iteratorBuilder();
+    private void initializePredictionIterator(final BufferedDataTable roiTable, final ExecutionContext exec)
+        throws Exception {
+        m_predictionIterator =
+            m_predictionTablePreparer.createTable(roiTable, exec.createSilentSubExecutionContext(0)).iterator();
+    }
 
+    private void initializeNullPredictions(final BufferedDataTable samplingTable, final ExecutionContext exec)
+        throws Exception {
+        // TODO add optional weighting
+        final double size = samplingTable.size();
+        long rowIdx = 1;
+        m_nullFx = new double[m_predictionTablePreparer.getNumColumns()];
+        try (final CloseableRowIterator iter =
+            m_predictionTablePreparer.createTable(samplingTable, exec.createSilentSubExecutionContext(0)).iterator()) {
+            while (iter.hasNext()) {
+                exec.checkCanceled();
+                DataRow row = iter.next();
+                for (int i = 0; i < m_nullFx.length; i++) {
+                    // the prediction table only contains columns that contain double values
+                    m_nullFx[i] += ((DoubleValue)row.getCell(i)).getDoubleValue();
+                }
+                exec.setProgress(rowIdx / size);
+            }
+        }
+        for (int i = 0; i < m_nullFx.length; i++) {
+            m_nullFx[i] /= size;
+        }
+
+        // TODO allow different link functions e.g. logit
+        m_shapWLS = new ShapWLS(new ArrayRealVector(m_nullFx), d -> d);
     }
 
 }

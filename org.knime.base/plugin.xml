@@ -2061,6 +2061,11 @@
             deprecated="false"
             factory-class="org.knime.base.node.meta.explain.shap.node.ShapLoopStartNodeFactory">
       </node>
+      <node
+            category-path="/labs/xai"
+            deprecated="false"
+            factory-class="org.knime.base.node.meta.explain.shap.node.ShapLoopEndNodeFactory">
+      </node>
    </extension>
    
       

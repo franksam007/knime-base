@@ -44,51 +44,50 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 22, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import static org.junit.Assert.assertEquals;
 
-import org.knime.base.node.meta.explain.feature.RowHandler;
-import org.knime.core.data.DataCell;
-import org.knime.core.data.DataRow;
-import org.knime.core.node.util.CheckUtils;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import org.junit.Test;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class SubsetReplacer {
+public class ShapMatrixUtilsTest {
 
-    private final Iterable<DataRow> m_samplingSet;
+    @Test
+    public void testSubtractVec() throws Exception {
+        RealMatrix matrix = MatrixUtils.createRealMatrix(3, 2);
+        RealVector vec = MatrixUtils.createRealVector(new double[] {-1, 1, 3});
+        ShapMatrixUtils.subtractVec(matrix, vec);
+        RealVector expected = vec.mapMultiply(-1);
 
-    private final RowHandler m_rowHandler;
-
-    SubsetReplacer(final Iterable<DataRow> samplingSet, final RowHandler rowHandler) {
-        Iterator<DataRow> iter = samplingSet.iterator();
-        CheckUtils.checkArgument(iter.hasNext(), "The sampling set must contain at least one row.");
-        CheckUtils.checkArgument(iter.next().getNumCells() == rowHandler.getExpectedNumberOfCells(),
-            "The number of cells in the sampling rows must match the number of feature handlers.");
-        m_samplingSet = samplingSet;
-        m_rowHandler = rowHandler;
-    }
-
-    Iterable<List<DataCell>> replace(final DataRow roi, final Mask mask) {
-        CheckUtils.checkArgument(roi.getNumCells() == m_rowHandler.getExpectedNumberOfCells(),
-            "The roi has %s cells but %s were expected.", roi.getNumCells(), m_rowHandler.getExpectedNumberOfCells());
-        final List<List<DataCell>> samples = new ArrayList<>();
-        m_rowHandler.setOriginal(roi);
-        m_rowHandler.resetReplacementIndices();
-        m_rowHandler.setReplacementIndices(mask.getComplement().iterator());
-        for (final DataRow sampleRow : m_samplingSet) {
-            m_rowHandler.setReplacement(sampleRow);
-            samples.add(m_rowHandler.createReplaced());
+        for (int i = 0; i < 2; i++) {
+            assertEquals(expected, matrix.getColumnVector(i));
         }
-        // TODO check if we can also implement this lazily
-        return samples;
     }
 
+    @Test
+    public void testScale() throws Exception {
+        RealMatrix matrix = MatrixUtils.createRealMatrix(2, 2);
+        matrix.setEntry(0, 0, 1);
+        matrix.setEntry(1, 0, 2);
+        matrix.setEntry(0, 1, 3);
+        matrix.setEntry(1, 1, 4);
+        RealVector vec = MatrixUtils.createRealVector(new double[] {2, 3});
+        ShapMatrixUtils.scaleVec(matrix, vec);
+        RealMatrix expected = MatrixUtils.createRealMatrix(2, 2);
+        expected.setEntry(0, 0, 2);
+        expected.setEntry(1, 0, 6);
+        expected.setEntry(0, 1, 6);
+        expected.setEntry(1, 1, 12);
+
+        assertEquals(expected, matrix);
+    }
 }

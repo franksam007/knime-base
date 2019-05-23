@@ -51,6 +51,7 @@ package org.knime.base.node.meta.explain.shap.node;
 import java.io.File;
 import java.io.IOException;
 
+import org.knime.base.node.meta.explain.shap.ShapExplainer;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
@@ -61,6 +62,7 @@ import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.workflow.LoopEndNode;
+import org.knime.core.node.workflow.LoopStartNode;
 
 /**
  *
@@ -68,13 +70,28 @@ import org.knime.core.node.workflow.LoopEndNode;
  */
 public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
 
+    private static final String LOOP_NAME = "SHAP Loop";
 
 
     /**
      * Constructor
      */
     public ShapLoopEndNodeModel() {
-        super(1, 1);
+        super(2, 1);
+    }
+
+    private ShapLoopStartNodeModel getLoopStart() throws InvalidSettingsException {
+        final LoopStartNode loopStart = getLoopStartNode();
+        if (loopStart instanceof ShapLoopStartNodeModel) {
+            return (ShapLoopStartNodeModel)loopStart;
+        } else {
+            throw new InvalidSettingsException(
+                "The " + LOOP_NAME + " End node can only be used with the " + LOOP_NAME + " Start node.");
+        }
+    }
+
+    private ShapExplainer getExplainer() throws InvalidSettingsException {
+        return getLoopStart().getExplainer();
     }
 
     /**
@@ -82,8 +99,9 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
      */
     @Override
     protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
-        // TODO
-        return null;
+        final ShapExplainer explainer = getExplainer();
+        // TODO possibly add settings
+        return new DataTableSpec[] {explainer.configureLoopEnd(inSpecs[0], inSpecs[1], null)};
     }
 
 
@@ -93,8 +111,16 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
     @Override
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
         throws Exception {
-        // TODO
-        return null;
+        final BufferedDataTable predictionTable = inData[0];
+        final BufferedDataTable maskTable = inData[1];
+        final ShapExplainer explainer = getExplainer();
+        explainer.consumePredictions(predictionTable, maskTable, exec);
+        if (explainer.hasNextIteration()) {
+            continueLoop();
+            return new BufferedDataTable[1];
+        }
+
+        return new BufferedDataTable[] {explainer.getLoopEndTable()};
     }
 
     /**

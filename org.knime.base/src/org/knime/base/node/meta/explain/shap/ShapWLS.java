@@ -71,8 +71,12 @@ final class ShapWLS {
         m_linkedNullPrediction = m_nullPredictions.map(link);
     }
 
-    RealVector getWLSCoefficients(final RealMatrix masks, final RealVector pred, final int dim, final RealVector fx,
+    double[] getWLSCoefficients(final RealMatrix masks, final RealVector pred, final int dim, final double fx,
         final RealVector weights) {
+
+        System.out.println("mask dims: " + masks.getRowDimension() + ", " + masks.getColumnDimension());
+        System.out.println("pred dim: " + pred.getDimension());
+        System.out.println("weights dim: " + weights.getDimension());
 
         final RealVector y = pred.map(m_link);
 
@@ -82,58 +86,46 @@ final class ShapWLS {
 
         final RealVector eyAdj = y.mapSubtractToSelf(linkedNullPrediction);
 
-        RealVector linkedFx = fx.map(m_link);
+        final double linkedFx = m_link.value(fx);
 
-        linkedFx = linkedFx.mapSubtractToSelf(linkedNullPrediction);
+        final RealVector eyAdj2 = eyAdj.subtract(lastNonZero.mapMultiply(linkedFx - linkedNullPrediction));
 
-        final RealVector eyAdj2 = eyAdj.subtract(lastNonZero.ebeMultiply(linkedFx));
+        RealMatrix etmp = masks.getSubMatrix(0, masks.getRowDimension() - 1, 0, masks.getColumnDimension() - 2);
 
-        RealMatrix adjMasks = masks.getSubMatrix(0, masks.getRowDimension() - 1, 0, masks.getColumnDimension() - 1);
-
-        subtractVec(adjMasks, lastNonZero);
+        ShapMatrixUtils.subtractVec(etmp, lastNonZero);
+        System.out.println("etmp shape: " + etmp.getRowDimension() + ", " + etmp.getColumnDimension());
 
         // X^T dot W where W is the diagonal matrix with the weights on the diagonal
-        RealMatrix xTw = adjMasks.copy();
+//        RealMatrix xT = x.transpose();
 
-        scaleRowWise(xTw, weights);
+        RealMatrix tmp = etmp.copy();
+        System.out.println("tmp shape: " + tmp.getRowDimension() + ", " + tmp.getColumnDimension());
 
-        RealMatrix inverse = MatrixUtils.inverse(xTw.multiply(adjMasks));
+        ShapMatrixUtils.scaleVec(tmp, weights);
 
-        RealVector w = inverse.multiply(xTw).operate(eyAdj2);
+        RealMatrix tmp2 = MatrixUtils.inverse(tmp.transpose().multiply(etmp));
 
-        return w;
-    }
+        System.out.println("tmp2 shape: " + tmp2.getRowDimension() + ", " + tmp2.getColumnDimension());
 
-    private static void scaleRowWise(final RealMatrix matrix, final RealVector vec) {
-        final int nRows = matrix.getRowDimension();
-        final int nCols = matrix.getColumnDimension();
-        assert vec.getDimension() == nRows;
+        RealVector w = tmp2.operate(tmp.transpose().operate(eyAdj2));
 
-        for (int r = 0; r < nRows; r++) {
-            for (int c = 0; c < nCols; c++) {
-                matrix.multiplyEntry(r, c, vec.getEntry(r));
-            }
+//        RealMatrix xTw = xT.multiply(MatrixUtils.createRealDiagonalMatrix(weights.toArray()));
+//
+//        RealMatrix inverse = MatrixUtils.inverse(xTw.multiply(x));
+
+//        RealVector w = inverse.multiply(xTw).operate(eyAdj2);
+
+        final double[] phi = new double[w.getDimension() + 1];
+
+        double sumW = 0.0;
+        for (int i = 0; i < w.getDimension(); i++) {
+            final double e = w.getEntry(i);
+            sumW += e;
+            phi[i] = e;
         }
-    }
+        phi[phi.length - 1] = linkedFx - linkedNullPrediction - sumW;
 
-    /**
-     * Subtracts the column vector vec from all columns of matrix. matrix and vec must have the same number of rows. The
-     * operation is performed in-place i.e. it changes the values in matrix.
-     *
-     * @param matrix to subtract vec from
-     * @param vec to subtract from matrix
-     */
-    private static void subtractVec(final RealMatrix matrix, final RealVector vec) {
-        final int nRows = matrix.getRowDimension();
-        final int nCols = matrix.getColumnDimension();
-        assert nRows == vec.getDimension();
-        for (int r = 0; r < nRows; r++) {
-            for (int c = 0; c < nCols; c++) {
-                final double v = matrix.getEntry(r, c);
-                matrix.setEntry(r, c, v - vec.getEntry(r));
-            }
-        }
-
+        return phi;
     }
 
 }

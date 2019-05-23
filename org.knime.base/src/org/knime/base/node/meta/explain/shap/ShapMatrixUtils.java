@@ -44,51 +44,51 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 22, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import org.knime.base.node.meta.explain.feature.RowHandler;
-import org.knime.core.data.DataCell;
-import org.knime.core.data.DataRow;
-import org.knime.core.node.util.CheckUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class SubsetReplacer {
+final class ShapMatrixUtils {
 
-    private final Iterable<DataRow> m_samplingSet;
+    private ShapMatrixUtils() {
 
-    private final RowHandler m_rowHandler;
-
-    SubsetReplacer(final Iterable<DataRow> samplingSet, final RowHandler rowHandler) {
-        Iterator<DataRow> iter = samplingSet.iterator();
-        CheckUtils.checkArgument(iter.hasNext(), "The sampling set must contain at least one row.");
-        CheckUtils.checkArgument(iter.next().getNumCells() == rowHandler.getExpectedNumberOfCells(),
-            "The number of cells in the sampling rows must match the number of feature handlers.");
-        m_samplingSet = samplingSet;
-        m_rowHandler = rowHandler;
     }
 
-    Iterable<List<DataCell>> replace(final DataRow roi, final Mask mask) {
-        CheckUtils.checkArgument(roi.getNumCells() == m_rowHandler.getExpectedNumberOfCells(),
-            "The roi has %s cells but %s were expected.", roi.getNumCells(), m_rowHandler.getExpectedNumberOfCells());
-        final List<List<DataCell>> samples = new ArrayList<>();
-        m_rowHandler.setOriginal(roi);
-        m_rowHandler.resetReplacementIndices();
-        m_rowHandler.setReplacementIndices(mask.getComplement().iterator());
-        for (final DataRow sampleRow : m_samplingSet) {
-            m_rowHandler.setReplacement(sampleRow);
-            samples.add(m_rowHandler.createReplaced());
+    static void scaleVec(final RealMatrix matrix, final RealVector vec) {
+        final int nRows = matrix.getRowDimension();
+        final int nCols = matrix.getColumnDimension();
+
+        for (int r = 0; r < nRows; r++) {
+            for (int c = 0; c < nCols; c++) {
+                matrix.multiplyEntry(r, c, vec.getEntry(r));
+            }
         }
-        // TODO check if we can also implement this lazily
-        return samples;
     }
 
+    /**
+     * Subtracts the column vector vec from all columns of matrix. matrix and vec must have the same number of rows. The
+     * operation is performed in-place i.e. it changes the values in matrix.
+     *
+     * @param matrix to subtract vec from
+     * @param vec to subtract from matrix
+     */
+    static void subtractVec(final RealMatrix matrix, final RealVector vec) {
+        final int nRows = matrix.getRowDimension();
+        final int nCols = matrix.getColumnDimension();
+        assert nRows == vec.getDimension();
+        for (int r = 0; r < nRows; r++) {
+            for (int c = 0; c < nCols; c++) {
+                final double v = matrix.getEntry(r, c);
+                matrix.setEntry(r, c, v - vec.getEntry(r));
+            }
+        }
+
+    }
 }

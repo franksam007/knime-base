@@ -44,51 +44,65 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 22, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.meta.explain.shap;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import org.knime.base.node.meta.explain.feature.RowHandler;
-import org.knime.core.data.DataCell;
-import org.knime.core.data.DataRow;
+import org.knime.base.node.meta.explain.Explanation;
 import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class SubsetReplacer {
+final class ShapExplanation implements Explanation {
 
-    private final Iterable<DataRow> m_samplingSet;
+    private final List<double[]> m_coeffs;
 
-    private final RowHandler m_rowHandler;
+    private final String m_roiKey;
 
-    SubsetReplacer(final Iterable<DataRow> samplingSet, final RowHandler rowHandler) {
-        Iterator<DataRow> iter = samplingSet.iterator();
-        CheckUtils.checkArgument(iter.hasNext(), "The sampling set must contain at least one row.");
-        CheckUtils.checkArgument(iter.next().getNumCells() == rowHandler.getExpectedNumberOfCells(),
-            "The number of cells in the sampling rows must match the number of feature handlers.");
-        m_samplingSet = samplingSet;
-        m_rowHandler = rowHandler;
+    private final int m_numFeatures;
+
+    ShapExplanation(final String roiKey, final List<double[]> coeffs) {
+        CheckUtils.checkArgument(!coeffs.isEmpty(), "Coefficients for at least one target must be provided");
+        m_roiKey = roiKey;
+        m_coeffs = coeffs;
+        m_numFeatures = coeffs.get(0).length;
     }
 
-    Iterable<List<DataCell>> replace(final DataRow roi, final Mask mask) {
-        CheckUtils.checkArgument(roi.getNumCells() == m_rowHandler.getExpectedNumberOfCells(),
-            "The roi has %s cells but %s were expected.", roi.getNumCells(), m_rowHandler.getExpectedNumberOfCells());
-        final List<List<DataCell>> samples = new ArrayList<>();
-        m_rowHandler.setOriginal(roi);
-        m_rowHandler.resetReplacementIndices();
-        m_rowHandler.setReplacementIndices(mask.getComplement().iterator());
-        for (final DataRow sampleRow : m_samplingSet) {
-            m_rowHandler.setReplacement(sampleRow);
-            samples.add(m_rowHandler.createReplaced());
-        }
-        // TODO check if we can also implement this lazily
-        return samples;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getRoiKey() {
+        return m_roiKey;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getNumberOfFeatures() {
+        return m_numFeatures;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getNumberOfTargets() {
+        return m_coeffs.size();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double getExplanationValue(final int target, final int feature) {
+        return m_coeffs.get(target)[feature];
     }
 
 }

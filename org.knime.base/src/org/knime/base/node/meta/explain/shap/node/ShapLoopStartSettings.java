@@ -65,28 +65,18 @@ import org.knime.core.node.util.filter.column.DataTypeColumnFilter;
  */
 public class ShapLoopStartSettings {
 
-    /**
-     *
-     */
     private static final String CFG_SEED = "seed";
 
-    /**
-     *
-     */
     private static final String CFG_USE_SEED = "useSeed";
 
     private static final String CFG_PREDICTION_COLS = "predictionColumns";
 
-    /**
-     *
-     */
     private static final String CFG_EXPLANATION_SET_SIZE = "explanationSetSize";
 
     private static final String CFG_DONT_USE_ELEMENT_NAMES = "dontUseElementNames";
 
-    /**
-     *
-     */
+    private static final String CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE = "treatAllColumnsAsSingleFeature";
+
     private static final int DEF_EXPLANATION_SET_SIZE = 1000;
 
     private static final String CFG_FEATURE_COLS = "featureColumns";
@@ -99,6 +89,9 @@ public class ShapLoopStartSettings {
 
     private boolean m_dontUseElementNames = false;
 
+    private boolean m_treatAllColumnsAsSingleFeature = false;
+
+
     private DataColumnSpecFilterConfiguration m_featureCols = createFeatureCols();
 
     private DataColumnSpecFilterConfiguration m_predictionCols = createPredictionCols();
@@ -110,6 +103,7 @@ public class ShapLoopStartSettings {
         m_featureCols.loadConfigurationInDialog(settings, inSpec);
         m_predictionCols.loadConfigurationInDialog(settings, inSpec);
         m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES, false);
+        m_treatAllColumnsAsSingleFeature = settings.getBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE, false);
     }
 
     void loadSettingsModel(final NodeSettingsRO settings) throws InvalidSettingsException {
@@ -119,6 +113,7 @@ public class ShapLoopStartSettings {
         m_featureCols.loadConfigurationInModel(settings);
         m_predictionCols.loadConfigurationInModel(settings);
         m_dontUseElementNames = settings.getBoolean(CFG_DONT_USE_ELEMENT_NAMES);
+        m_treatAllColumnsAsSingleFeature = settings.getBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE);
     }
 
     void saveSettings(final NodeSettingsWO settings) {
@@ -128,6 +123,7 @@ public class ShapLoopStartSettings {
         m_featureCols.saveConfiguration(settings);
         m_predictionCols.saveConfiguration(settings);
         settings.addBoolean(CFG_DONT_USE_ELEMENT_NAMES, m_dontUseElementNames);
+        settings.addBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE, m_treatAllColumnsAsSingleFeature);
     }
 
 
@@ -212,6 +208,13 @@ public class ShapLoopStartSettings {
     }
 
     /**
+     * @param dontUseElementNames the dontUseElementNames to set
+     */
+    void setDontUseElementNames(final boolean dontUseElementNames) {
+        m_dontUseElementNames = dontUseElementNames;
+    }
+
+    /**
      * @return the predictionCols
      */
     public DataColumnSpecFilterConfiguration getPredictionCols() {
@@ -225,6 +228,18 @@ public class ShapLoopStartSettings {
         m_predictionCols = predictionCols;
     }
 
+    /**
+     * @return the treatAllColumnsAsSingleFeature
+     */
+    public boolean isTreatAllColumnsAsSingleFeature() {
+        return m_treatAllColumnsAsSingleFeature;
+    }
+
+    /**
+     * @param treatAllColumnsAsSingleFeature the treatAllColumnsAsSingleFeature to set
+     */
+    void setTreatAllColumnsAsSingleFeature(final boolean treatAllColumnsAsSingleFeature) {
+        m_treatAllColumnsAsSingleFeature = treatAllColumnsAsSingleFeature;
+    }
+
 }
-
-

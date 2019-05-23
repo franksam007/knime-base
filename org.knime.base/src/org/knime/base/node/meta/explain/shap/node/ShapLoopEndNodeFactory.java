@@ -44,51 +44,60 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 9, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   07.03.2019 (adrian): created
  */
-package org.knime.base.node.meta.explain.shap;
+package org.knime.base.node.meta.explain.shap.node;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import org.knime.base.node.meta.explain.feature.RowHandler;
-import org.knime.core.data.DataCell;
-import org.knime.core.data.DataRow;
-import org.knime.core.node.util.CheckUtils;
+import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeFactory;
+import org.knime.core.node.NodeView;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class SubsetReplacer {
+public class ShapLoopEndNodeFactory extends NodeFactory<ShapLoopEndNodeModel> {
 
-    private final Iterable<DataRow> m_samplingSet;
-
-    private final RowHandler m_rowHandler;
-
-    SubsetReplacer(final Iterable<DataRow> samplingSet, final RowHandler rowHandler) {
-        Iterator<DataRow> iter = samplingSet.iterator();
-        CheckUtils.checkArgument(iter.hasNext(), "The sampling set must contain at least one row.");
-        CheckUtils.checkArgument(iter.next().getNumCells() == rowHandler.getExpectedNumberOfCells(),
-            "The number of cells in the sampling rows must match the number of feature handlers.");
-        m_samplingSet = samplingSet;
-        m_rowHandler = rowHandler;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ShapLoopEndNodeModel createNodeModel() {
+        return new ShapLoopEndNodeModel();
     }
 
-    Iterable<List<DataCell>> replace(final DataRow roi, final Mask mask) {
-        CheckUtils.checkArgument(roi.getNumCells() == m_rowHandler.getExpectedNumberOfCells(),
-            "The roi has %s cells but %s were expected.", roi.getNumCells(), m_rowHandler.getExpectedNumberOfCells());
-        final List<List<DataCell>> samples = new ArrayList<>();
-        m_rowHandler.setOriginal(roi);
-        m_rowHandler.resetReplacementIndices();
-        m_rowHandler.setReplacementIndices(mask.getComplement().iterator());
-        for (final DataRow sampleRow : m_samplingSet) {
-            m_rowHandler.setReplacement(sampleRow);
-            samples.add(m_rowHandler.createReplaced());
-        }
-        // TODO check if we can also implement this lazily
-        return samples;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected int getNrNodeViews() {
+        // TODO add js node view
+        return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeView<ShapLoopEndNodeModel> createNodeView(final int viewIndex,
+        final ShapLoopEndNodeModel nodeModel) {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean hasDialog() {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected NodeDialogPane createNodeDialogPane() {
+        return null;
     }
 
 }

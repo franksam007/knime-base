@@ -53,6 +53,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.Random;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -65,7 +66,10 @@ import javax.swing.SpinnerNumberModel;
 
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterPanel;
+
+import com.google.common.collect.Sets;
 
 /**
  *
@@ -75,6 +79,8 @@ class OptionsDialog {
 
     private final DataColumnSpecFilterPanel m_featureColumns = new DataColumnSpecFilterPanel();
 
+    private final DataColumnSpecFilterPanel m_predictionColumns = new DataColumnSpecFilterPanel();
+
     private final JSpinner m_explanationSetSize =
         new JSpinner(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1000));
 
@@ -83,6 +89,11 @@ class OptionsDialog {
     private final JButton m_newSeedBtn = new JButton("New");
 
     private final JCheckBox m_useSeed = new JCheckBox("Use seed");
+
+    private final JCheckBox m_treatCollectionsAsSingleFeature =
+        new JCheckBox("Every collection column represents a single feature");
+
+    private final JCheckBox m_dontUseElementNames = new JCheckBox("Don't use element names for collection features");
 
     /**
      *
@@ -103,22 +114,29 @@ class OptionsDialog {
     }
 
     JPanel getPanel() {
+        // === Options Tab ===
+
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = createGbc();
         gbc.weightx = 1;
         gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
-        m_featureColumns.setBorder(BorderFactory.createTitledBorder("Feature columns"));
-        panel.add(m_featureColumns, gbc);
+        panel.add(createFeaturePanel(), gbc);
+
+        gbc.gridy++;
+        m_predictionColumns.setBorder(BorderFactory.createTitledBorder("Target columns"));
+        panel.add(m_predictionColumns, gbc);
 
         gbc.gridy++;
 
         panel.add(createSamplingOptionsPanel(), gbc);
 
+        gbc.gridy++;
+        panel.add(createOutputOptionsPanel(), gbc);
+
         return panel;
     }
-
 
     private JPanel createSamplingOptionsPanel() {
         final GridBagConstraints gbc = createGbc();
@@ -127,7 +145,6 @@ class OptionsDialog {
         panel.setBorder(BorderFactory.createTitledBorder("Sampling Options"));
         addComponent(panel, gbc, "Explanation set size", m_explanationSetSize);
         gbc.gridy++;
-        gbc.gridx = 0;
         gbc.gridwidth = 1;
         gbc.weighty = 0;
         gbc.gridx = 0;
@@ -141,6 +158,13 @@ class OptionsDialog {
         return panel;
     }
 
+    private JPanel createOutputOptionsPanel() {
+        final JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createTitledBorder("Output options"));
+        panel.add(m_dontUseElementNames);
+        return panel;
+    }
+
     private static GridBagConstraints createGbc() {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -148,6 +172,23 @@ class OptionsDialog {
         gbc.gridx = 0;
         gbc.gridy = 0;
         return gbc;
+    }
+
+    private JPanel createFeaturePanel() {
+        final GridBagConstraints gbc = createGbc();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Feature columns"));
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        panel.add(m_featureColumns, gbc);
+        gbc.gridy++;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        panel.add(m_treatCollectionsAsSingleFeature, gbc);
+        return panel;
     }
 
     private static void addComponent(final JPanel panel, final GridBagConstraints gbc, final String label,
@@ -162,10 +203,14 @@ class OptionsDialog {
     }
 
     void saveSettingsTo(final ShapLoopStartSettings cfg) throws InvalidSettingsException {
+        checkDisjunctFeatureAndPredictionCols();
         m_featureColumns.saveConfiguration(cfg.getFeatureCols());
+        m_predictionColumns.saveConfiguration(cfg.getPredictionCols());
         cfg.setExplanationSetSize((int)m_explanationSetSize.getValue());
         cfg.setSeed(getSeedAsLong());
         cfg.setUseSeed(m_useSeed.isSelected());
+        cfg.setDontUseElementNames(m_dontUseElementNames.isSelected());
+        cfg.setTreatAllColumnsAsSingleFeature(m_treatCollectionsAsSingleFeature.isSelected());
     }
 
     private long getSeedAsLong() throws InvalidSettingsException {
@@ -179,10 +224,22 @@ class OptionsDialog {
 
     void loadSettingsFrom(final ShapLoopStartSettings cfg, final DataTableSpec inSpec) {
         m_featureColumns.loadConfiguration(cfg.getFeatureCols(), inSpec);
+        m_predictionColumns.loadConfiguration(cfg.getPredictionCols(), inSpec);
         m_explanationSetSize.setValue(cfg.getExplanationSetSize());
         m_seedBox.setText(cfg.getManualSeed() + "");
         m_useSeed.setSelected(cfg.isUseSeed());
         reactToUseSeedCheckBox();
+        m_dontUseElementNames.setSelected(cfg.isDontUseElementNames());
+        m_treatCollectionsAsSingleFeature.setSelected(cfg.isTreatAllColumnsAsSingleFeature());
+    }
+
+    private void checkDisjunctFeatureAndPredictionCols() throws InvalidSettingsException {
+        final Set<String> features = m_featureColumns.getIncludedNamesAsSet();
+        final Set<String> predictions = m_predictionColumns.getIncludedNamesAsSet();
+        final Set<String> intersection = Sets.intersection(features, predictions);
+        CheckUtils.checkSetting(intersection.isEmpty(),
+            "The following column(s) are used as both feature and prediction column which is not allowed: %s",
+            intersection);
     }
 
 }
