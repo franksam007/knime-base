@@ -48,7 +48,6 @@
  */
 package org.knime.base.node.meta.explain.util;
 
-import org.knime.base.node.meta.explain.util.ColumnSetManager.MissingColumnException;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.container.ColumnRearranger;
 import org.knime.core.node.BufferedDataTable;
@@ -74,6 +73,17 @@ public final  class TablePreparer {
      */
     public TablePreparer(final DataColumnSpecFilterConfiguration filter, final String purpose) {
         m_colManager = new ColumnSetManager(filter);
+        m_purpose = purpose;
+    }
+
+    /**
+     * Constructs a TablePreparer that handles the columns in <b>spec</b>.
+     *
+     * @param spec the spec handled by the created instance
+     * @param purpose of this instance (e.g. feature or prediction)
+     */
+    public TablePreparer(final DataTableSpec spec, final String purpose) {
+        m_colManager = new ColumnSetManager(spec);
         m_purpose = purpose;
     }
 

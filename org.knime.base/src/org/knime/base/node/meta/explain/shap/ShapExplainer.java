@@ -61,19 +61,24 @@ import org.knime.base.node.meta.explain.ExplanationToDataRowConverter;
 import org.knime.base.node.meta.explain.ExplanationToMultiRowConverter;
 import org.knime.base.node.meta.explain.feature.FeatureManager;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings;
+import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings.PredictionColumnSelectionMode;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopStartSettings;
 import org.knime.base.node.meta.explain.util.DefaultRandomDataGeneratorFactory;
+import org.knime.base.node.meta.explain.util.MissingColumnException;
 import org.knime.base.node.meta.explain.util.RandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.TablePreparer;
 import org.knime.base.node.meta.explain.util.iter.IntIterator;
+import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DoubleValue;
 import org.knime.core.data.RowKey;
 import org.knime.core.data.container.CloseableRowIterator;
+import org.knime.core.data.container.ColumnRearranger;
 import org.knime.core.data.def.DefaultRow;
 import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.BufferedDataTable;
+import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.util.CheckUtils;
@@ -103,7 +108,7 @@ public class ShapExplainer {
 
     private ShapWLS m_shapWLS;
 
-    private Iterator<DataRow> m_rowIterator;
+    private CloseableRowIterator m_rowIterator;
 
     private int m_maxIterations;
 
@@ -112,8 +117,6 @@ public class ShapExplainer {
     private int m_samplingTableSize;
 
     private static final SampleToRow<ShapSample, RowKey> SAMPLE_TO_ROW = ShapPredictableSampleToRow.INSTANCE;
-
-    private String m_weightColumnName;
 
     private String m_currentRoi;
 
@@ -134,13 +137,6 @@ public class ShapExplainer {
         m_featureManager = new FeatureManager(settings.isTreatAllColumnsAsSingleFeature(), false);
     }
 
-    /**
-     * @return the name of the weight column (typically it will be 'weight' but this name might already be occupied by a
-     *         column in the table)
-     */
-    public String getWeightColumnName() {
-        return m_weightColumnName;
-    }
 
     /**
      * @return the maximal number of iteration of the SHAP loop i.e. the number of rows in the ROI table
@@ -162,6 +158,9 @@ public class ShapExplainer {
     public void reset() {
         m_maxIterations = 0;
         m_currentIteration = -1;
+        if (m_rowIterator != null) {
+            m_rowIterator.close();
+        }
         m_rowIterator = null;
         m_sampler = null;
         m_nullFx = null;
@@ -346,12 +345,34 @@ public class ShapExplainer {
     private void updateLoopEndSettings(final DataTableSpec predictionSpec, final ShapLoopEndSettings settings) {
         if (m_endSettings == null || !m_endSettings.equals(settings)) {
             // either we have no settings or the settings changed so we need to update
-            m_predictionTablePreparer = new TablePreparer(settings.getPredictionCols(), "prediction");
-            m_predictionTablePreparer.updateSpecs(predictionSpec, settings.getPredictionCols());
+            updatePredictionTablePreparer(predictionSpec, settings);
             m_featureManager.setUseElementNames(settings.isUseElementNames());
             updateExplanationConverter();
         }
         m_endSettings = settings;
+    }
+
+    private void updatePredictionTablePreparer(final DataTableSpec predictionSpec, final ShapLoopEndSettings settings) {
+        if (settings.getPredictionColumnSelectionMode() == PredictionColumnSelectionMode.AUTOMATIC) {
+            final DataTableSpec predictionCols = determinePredictionColumns(predictionSpec);
+            m_predictionTablePreparer = new TablePreparer(predictionCols, "prediction");
+        } else {
+            m_predictionTablePreparer = new TablePreparer(settings.getPredictionCols(), "prediction");
+            m_predictionTablePreparer.updateSpecs(predictionSpec, settings.getPredictionCols());
+        }
+    }
+
+    private DataTableSpec determinePredictionColumns(final DataTableSpec predictionSpec) {
+        final ColumnRearranger cr = new ColumnRearranger(predictionSpec);
+        cr.remove(m_featureTablePreparer.getTableSpec().getColumnNames());
+        final DataTableSpec initialPredictionSpec = cr.createSpec();
+        for (DataColumnSpec potentialPredictionColumn : initialPredictionSpec) {
+            if (!potentialPredictionColumn.getType().isCompatible(DoubleValue.class)) {
+                cr.remove(potentialPredictionColumn.getName());
+            }
+        }
+        final DataTableSpec predictionCols = cr.createSpec();
+        return predictionCols;
     }
 
     private DataTableSpec createInverseSpec() {
@@ -409,7 +430,8 @@ public class ShapExplainer {
     }
 
     private void initialize(final BufferedDataTable roiTable, final BufferedDataTable samplingTable,
-        final ExecutionContext exec) throws Exception {
+        final ExecutionContext exec)
+        throws InvalidSettingsException, CanceledExecutionException, MissingColumnException {
         // plus one because the first iteration predicts the sampling table
         m_maxIterations = (int)roiTable.size() + 1;
         m_currentIteration = 0;
@@ -427,7 +449,7 @@ public class ShapExplainer {
     }
 
     private void initializeNullPredictions(final BufferedDataTable samplingTable, final ExecutionContext exec)
-        throws Exception {
+        throws InvalidSettingsException, CanceledExecutionException, MissingColumnException {
         // TODO add optional weighting
         final double size = samplingTable.size();
         long rowIdx = 1;

@@ -53,9 +53,13 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 
+import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings.PredictionColumnSelectionMode;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterPanel;
@@ -70,6 +74,27 @@ class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
 
     private final JCheckBox m_useElementNames = new JCheckBox("Use element names for collection features");
 
+    private final JRadioButton m_automaticColumnSelection =
+        new JRadioButton("All numeric non-feature columns are prediction columns");
+
+    private final JRadioButton m_manualColumnSelection = new JRadioButton("Manually select prediction columns");
+
+    EndOptionsDialog() {
+        ButtonGroup group = new ButtonGroup();
+        group.add(m_automaticColumnSelection);
+        group.add(m_manualColumnSelection);
+
+        m_automaticColumnSelection
+            .addActionListener(e -> reactToModeChange());
+        m_manualColumnSelection.addActionListener(e -> reactToModeChange());
+    }
+
+    /**
+     *
+     */
+    private void reactToModeChange() {
+        m_predictionColumns.setEnabled(m_manualColumnSelection.isSelected());
+    }
 
     @Override
     public JPanel getPanel() {
@@ -81,14 +106,23 @@ class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
         gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
-        m_predictionColumns.setBorder(BorderFactory.createTitledBorder("Target columns"));
-        panel.add(m_predictionColumns, gbc);
+        panel.add(createPredictionColumnsPanel(), gbc);
 
         gbc.gridy++;
         gbc.weighty = 0;
         gbc.weightx = 0;
         panel.add(createOutputOptionsPanel(), gbc);
 
+        return panel;
+    }
+
+    private JPanel createPredictionColumnsPanel() {
+        final JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        panel.setBorder(BorderFactory.createTitledBorder("Prediction columns"));
+        panel.add(m_automaticColumnSelection);
+        panel.add(m_manualColumnSelection);
+        panel.add(m_predictionColumns);
         return panel;
     }
 
@@ -111,12 +145,18 @@ class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
     @Override
     public void saveSettingsTo(final ShapLoopEndSettings cfg) throws InvalidSettingsException {
         m_predictionColumns.saveConfiguration(cfg.getPredictionCols());
+        cfg.setUseElementNames(m_useElementNames.isSelected());
+        cfg.setPredictionColumnSelectionMode(m_automaticColumnSelection.isSelected()
+            ? PredictionColumnSelectionMode.AUTOMATIC : PredictionColumnSelectionMode.MANUAL);
     }
 
     @Override
     public void loadSettingsFrom(final ShapLoopEndSettings cfg, final DataTableSpec inSpec) {
         m_predictionColumns.loadConfiguration(cfg.getPredictionCols(), inSpec);
         m_useElementNames.setSelected(cfg.isUseElementNames());
+        final boolean isAutomatic = cfg.getPredictionColumnSelectionMode() == PredictionColumnSelectionMode.AUTOMATIC;
+        m_automaticColumnSelection.setSelected(isAutomatic);
+        reactToModeChange();
     }
 
 }

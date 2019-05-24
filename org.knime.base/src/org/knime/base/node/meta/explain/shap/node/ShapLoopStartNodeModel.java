@@ -139,7 +139,6 @@ final class ShapLoopStartNodeModel extends NodeModel implements LoopStartNodeTer
         final BufferedDataTable result = m_explainer.executeLoopStart(roiTable, samplingTable, exec);
         pushFlowVariableInt("currentIteration", m_explainer.getCurrentIteration());
         pushFlowVariableInt("maxIterations", m_explainer.getMaxIterations());
-        pushFlowVariableString("weightColumnName", m_explainer.getWeightColumnName());
         return new BufferedDataTable[] {result};
     }
 

@@ -171,6 +171,7 @@ public class ShapLoopEndNodeModel extends NodeModel implements LoopEndNode {
      */
     @Override
     protected void reset() {
+        // nothing to reset
     }
 
 }

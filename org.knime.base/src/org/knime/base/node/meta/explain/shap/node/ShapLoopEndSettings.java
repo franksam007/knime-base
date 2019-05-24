@@ -56,11 +56,34 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
 
 /**
- * TODO unify settings for Shapley Values and ModelExplainer
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
 public class ShapLoopEndSettings implements ShapSettings {
+
+    /**
+     *
+     */
+    private static final String CFG_PREDICTION_COLUMN_SELECTION_MODE = "predictionColumnSelectionMode";
+
+    /**
+     * Enum that indicates whether prediction columns should be selected automatically or are specified by the user
+     * manually.
+     *
+     * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+     */
+    public enum PredictionColumnSelectionMode {
+            /**
+             * Any appended numerical non-feature columns is considered as prediction column.
+             */
+            AUTOMATIC,
+            /**
+             * Prediction columns are manually supplied by the user.
+             */
+            MANUAL;
+    }
+
+    // When adding new options be sure to add them to the equals, hashCode, load and save methods
 
     private static final String CFG_PREDICTION_COLUMNS = "predictionColumns";
 
@@ -70,23 +93,43 @@ public class ShapLoopEndSettings implements ShapSettings {
 
     private DataColumnSpecFilterConfiguration m_predictionCols = createPredictionCols();
 
+    private PredictionColumnSelectionMode m_predictionColumnSelectionMode = PredictionColumnSelectionMode.AUTOMATIC;
 
     @Override
     public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
         m_predictionCols.loadConfigurationInDialog(settings, inSpec);
         m_useElementNames = settings.getBoolean(CFG_USE_ELEMENT_NAMES, false);
+        m_predictionColumnSelectionMode = PredictionColumnSelectionMode.valueOf(
+            settings.getString(CFG_PREDICTION_COLUMN_SELECTION_MODE, PredictionColumnSelectionMode.AUTOMATIC.name()));
     }
 
     @Override
     public void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_predictionCols.loadConfigurationInModel(settings);
         m_useElementNames = settings.getBoolean(CFG_USE_ELEMENT_NAMES);
+        m_predictionColumnSelectionMode =
+            PredictionColumnSelectionMode.valueOf(settings.getString(CFG_PREDICTION_COLUMN_SELECTION_MODE));
     }
 
     @Override
     public void saveSettings(final NodeSettingsWO settings) {
         m_predictionCols.saveConfiguration(settings);
         settings.addBoolean(CFG_USE_ELEMENT_NAMES, m_useElementNames);
+        settings.addString(CFG_PREDICTION_COLUMN_SELECTION_MODE, m_predictionColumnSelectionMode.name());
+    }
+
+    /**
+     * @return the predictionColumnSelectionMode
+     */
+    public PredictionColumnSelectionMode getPredictionColumnSelectionMode() {
+        return m_predictionColumnSelectionMode;
+    }
+
+    /**
+     * @param predictionColumnSelectionMode the predictionColumnSelectionMode to set
+     */
+    void setPredictionColumnSelectionMode(final PredictionColumnSelectionMode predictionColumnSelectionMode) {
+        m_predictionColumnSelectionMode = predictionColumnSelectionMode;
     }
 
     /**
@@ -118,7 +161,6 @@ public class ShapLoopEndSettings implements ShapSettings {
         m_useElementNames = useElementNames;
     }
 
-
     /**
      * {@inheritDoc}
      */
@@ -130,8 +172,8 @@ public class ShapLoopEndSettings implements ShapSettings {
         if (obj instanceof ShapLoopEndSettings) {
             final ShapLoopEndSettings other = (ShapLoopEndSettings)obj;
             return this.m_predictionCols.equals(other.m_predictionCols)
-                && this.m_useElementNames == other.m_useElementNames;
-            // we don't care if the loading flag is the same as it's just an indicator
+                && this.m_useElementNames == other.m_useElementNames
+                && this.m_predictionColumnSelectionMode == other.m_predictionColumnSelectionMode;
         }
         return false;
     }
@@ -144,6 +186,7 @@ public class ShapLoopEndSettings implements ShapSettings {
         final HashCodeBuilder builder = new HashCodeBuilder();
         builder.append(m_useElementNames);
         builder.append(m_predictionCols);
+        builder.append(m_predictionColumnSelectionMode);
         return builder.toHashCode();
     }
 
