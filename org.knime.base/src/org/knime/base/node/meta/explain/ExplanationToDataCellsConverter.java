@@ -44,38 +44,29 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 24, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Apr 26, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.util;
+package org.knime.base.node.meta.explain;
 
-import org.knime.core.data.DataColumnSpec;
+import java.util.Collection;
+
+import org.knime.core.data.DataCell;
+import org.knime.core.data.DataRow;
+import org.knime.core.data.DataTableSpec;
 
 /**
- * This exception indicates that a required column is missing.
+ * Specialization of {@link ExplanationConverter} that focuses on KNIME {@link DataRow DataRows}.
+ * Implementations of this interface also have to provide the DataTableSpec that fits the
+ * rows they produce.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class MissingColumnException extends Exception {
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1L;
-
-    private final DataColumnSpec m_missingCol;
+public interface ExplanationToDataCellsConverter extends ExplanationConverter<DataCell[]> {
 
     /**
-     * Creates a MissingColumnException.
-     * @param missingCol the {@link DataColumnSpec} of the column that is missing
+     * @param featureNames the names of the features contained in the explanations passed to convertAndWrite.
+     * @return the {@link DataTableSpec} for rows produced by this instance
      */
-    public MissingColumnException(final DataColumnSpec missingCol) {
-        m_missingCol = missingCol;
-    }
-
-    /**
-     * @return the missing column
-     */
-    public DataColumnSpec getMissingColumn() {
-        return m_missingCol;
-    }
+    DataTableSpec createSpec(final Collection<String> featureNames);
 
 }

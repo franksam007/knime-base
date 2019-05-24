@@ -48,7 +48,6 @@
  */
 package org.knime.base.node.meta.explain.shap.node;
 
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
@@ -83,7 +82,7 @@ public class ShapLoopEndSettings implements ShapSettings {
             MANUAL;
     }
 
-    // When adding new options be sure to add them to the equals, hashCode, load and save methods
+    // When adding new options be sure to add them to the load and save methods
 
     private static final String CFG_PREDICTION_COLUMNS = "predictionColumns";
 
@@ -159,35 +158,6 @@ public class ShapLoopEndSettings implements ShapSettings {
 
     void setUseElementNames(final boolean useElementNames) {
         m_useElementNames = useElementNames;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj instanceof ShapLoopEndSettings) {
-            final ShapLoopEndSettings other = (ShapLoopEndSettings)obj;
-            return this.m_predictionCols.equals(other.m_predictionCols)
-                && this.m_useElementNames == other.m_useElementNames
-                && this.m_predictionColumnSelectionMode == other.m_predictionColumnSelectionMode;
-        }
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int hashCode() {
-        final HashCodeBuilder builder = new HashCodeBuilder();
-        builder.append(m_useElementNames);
-        builder.append(m_predictionCols);
-        builder.append(m_predictionColumnSelectionMode);
-        return builder.toHashCode();
     }
 
 }

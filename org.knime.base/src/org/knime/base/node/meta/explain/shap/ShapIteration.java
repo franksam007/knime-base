@@ -44,28 +44,69 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Apr 26, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 24, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain;
+package org.knime.base.node.meta.explain.shap;
 
-import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
-import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
+import org.knime.core.node.util.CheckUtils;
 
 /**
- * Specialization of {@link ExplanationConverter} that focuses on KNIME {@link DataRow DataRows}.
- * Implementations of this interface also have to provide the DataTableSpec that fits the
- * rows they produce.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface ExplanationToDataRowConverter extends ExplanationConverter<DataRow> {
+final class ShapIteration {
 
-    /**
-     * @param featureNames the names of the features contained in the explanations passed to convertAndWrite.
-     * @return the {@link DataTableSpec} for rows produced by this instance
-     */
-    DataTableSpec createSpec(final Collection<String> featureNames);
+    private final Mask[] m_masks;
+
+    private final double[] m_weights;
+
+    private final String m_roiKey;
+
+    ShapIteration(final List<ShapSample> samples, final String roiKey) {
+        m_weights = getShapWeights(samples);
+        m_roiKey = roiKey;
+        m_masks = getMasks(samples);
+    }
+
+    private static double[] getShapWeights(final List<ShapSample> samples) {
+        final int nSamples = samples.size();
+        final double[] weights = new double[nSamples];
+        final Iterator<ShapSample> iter = samples.iterator();
+        for (int i = 0; i < nSamples; i++) {
+            weights[i] = iter.next().getWeight();
+        }
+        return weights;
+    }
+
+    private static Mask[] getMasks(final List<ShapSample> samples) {
+        CheckUtils.checkState(!samples.isEmpty(), "No samples for the current iteration stored.");
+        int nSamples = samples.size();
+        final Mask[] masks = new Mask[samples.size()];
+        final Iterator<ShapSample> iter = samples.iterator();
+        for (int i = 0; i < nSamples; i++) {
+            final ShapSample sample = iter.next();
+            masks[i] = sample.getMask();
+        }
+        return masks;
+    }
+
+    Mask[] getMasks() {
+        return m_masks;
+    }
+
+    double[] getWeights() {
+        return m_weights;
+    }
+
+    String getRoiKey() {
+        return m_roiKey;
+    }
+
+    int getNumberOfSamples() {
+        return m_masks.length;
+    }
 
 }

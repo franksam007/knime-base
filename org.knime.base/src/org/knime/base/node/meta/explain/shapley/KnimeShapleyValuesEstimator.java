@@ -55,8 +55,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.knime.base.node.meta.explain.CountingDataContainer;
 import org.knime.base.node.meta.explain.Explanation;
-import org.knime.base.node.meta.explain.ExplanationToDataRowConverter;
+import org.knime.base.node.meta.explain.ExplanationToDataCellsConverter;
 import org.knime.base.node.meta.explain.ExplanationToMultiRowConverter;
 import org.knime.base.node.meta.explain.feature.FeatureManager;
 import org.knime.base.node.meta.explain.feature.KnimeFeatureVectorIterator;
@@ -71,7 +72,6 @@ import org.knime.core.data.DataCell;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTable;
 import org.knime.core.data.DataTableSpec;
-import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
@@ -101,9 +101,9 @@ public final class KnimeShapleyValuesEstimator {
 
     private RowTransformer m_rowTransformer;
 
-    private BufferedDataContainer m_loopEndContainer;
+    private CountingDataContainer m_loopEndContainer;
 
-    private ExplanationToDataRowConverter m_explanationConverter;
+    private ExplanationToDataCellsConverter m_explanationConverter;
 
     private int m_numIterations = -1;
 
@@ -234,7 +234,7 @@ public final class KnimeShapleyValuesEstimator {
             m_rowTransformer.close();
         }
         m_rowTransformer = null;
-        if (m_loopEndContainer != null && m_loopEndContainer.isOpen()) {
+        if (m_loopEndContainer != null) {
             m_loopEndContainer.close();
         }
         m_loopEndContainer = null;
@@ -325,7 +325,7 @@ public final class KnimeShapleyValuesEstimator {
             m_predictionTablePreparer.getNumColumns());
         if (m_loopEndContainer == null) {
             final DataTableSpec outputSpec = configureLoopEnd(predictionTable.getDataTableSpec());
-            m_loopEndContainer = exec.createDataContainer(outputSpec);
+            m_loopEndContainer = new CountingDataContainer(exec.createDataContainer(outputSpec));
         }
         final long totalLong = getNumberOfInputRowsFromBatchSize(predictionTable.size());
         final double total = totalLong;
@@ -334,7 +334,7 @@ public final class KnimeShapleyValuesEstimator {
             exec.setProgress(currentRow / total,
                 "Calculating Shapley Values for row " + currentRow + " of " + totalLong);
             final Explanation nextExplanation = predictor.next();
-            m_explanationConverter.convertAndWrite(nextExplanation, m_loopEndContainer::addRowToTable);
+            m_explanationConverter.convertAndWrite(nextExplanation, m_loopEndContainer);
             currentRow++;
         }
     }
@@ -361,9 +361,6 @@ public final class KnimeShapleyValuesEstimator {
     public BufferedDataTable getLoopEndTable() {
         CheckUtils.checkState(m_loopEndContainer != null,
             "The loop end container is null, this indicates a coding error.");
-        CheckUtils.checkState(!m_loopEndContainer.isClosed(),
-            "The loop end container is already closed, this indicates a coding error.");
-        m_loopEndContainer.close();
         return m_loopEndContainer.getTable();
     }
 }

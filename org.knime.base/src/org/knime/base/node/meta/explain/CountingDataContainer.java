@@ -46,36 +46,63 @@
  * History
  *   May 24, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.util;
+package org.knime.base.node.meta.explain;
 
-import org.knime.core.data.DataColumnSpec;
+import java.util.function.Consumer;
+
+import org.knime.core.data.DataCell;
+import org.knime.core.data.RowKey;
+import org.knime.core.data.def.DefaultRow;
+import org.knime.core.node.BufferedDataContainer;
+import org.knime.core.node.BufferedDataTable;
 
 /**
- * This exception indicates that a required column is missing.
+ * Changes the API of a data container so that it doesn't require
+ * complete rows but instead {@link DataCell} arrays.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class MissingColumnException extends Exception {
+public final class CountingDataContainer implements Consumer<DataCell[]> {
+
+    private final BufferedDataContainer m_container;
+
+    private long m_idx = 0;
+
     /**
+     * @param container container to wrap
      *
      */
-    private static final long serialVersionUID = 1L;
-
-    private final DataColumnSpec m_missingCol;
-
-    /**
-     * Creates a MissingColumnException.
-     * @param missingCol the {@link DataColumnSpec} of the column that is missing
-     */
-    public MissingColumnException(final DataColumnSpec missingCol) {
-        m_missingCol = missingCol;
+    public CountingDataContainer(final BufferedDataContainer container) {
+        m_container = container;
     }
 
     /**
-     * @return the missing column
+     * {@inheritDoc}
      */
-    public DataColumnSpec getMissingColumn() {
-        return m_missingCol;
+    @Override
+    public void accept(final DataCell[] cells) {
+        m_container.addRowToTable(new DefaultRow(RowKey.createRowKey(m_idx), cells));
+        m_idx++;
     }
+
+    /**
+     * Closes the wrapped {@link BufferedDataContainer}
+     */
+    public void close() {
+        if (m_container.isOpen()) {
+            m_container.close();
+        }
+    }
+
+    /**
+     * @return the BufferedDataTable constructed from the container
+     */
+    public BufferedDataTable getTable() {
+        if (m_container.isOpen()) {
+            m_container.close();
+        }
+        return m_container.getTable();
+    }
+
 
 }

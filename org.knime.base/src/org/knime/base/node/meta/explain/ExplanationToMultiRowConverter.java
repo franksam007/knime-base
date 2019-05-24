@@ -57,8 +57,6 @@ import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataTableSpecCreator;
-import org.knime.core.data.RowKey;
-import org.knime.core.data.def.DefaultRow;
 import org.knime.core.data.def.DoubleCell;
 import org.knime.core.data.def.StringCell;
 import org.knime.core.node.util.CheckUtils;
@@ -69,11 +67,9 @@ import org.knime.core.node.util.CheckUtils;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public final class ExplanationToMultiRowConverter implements ExplanationToDataRowConverter {
+public final class ExplanationToMultiRowConverter implements ExplanationToDataCellsConverter {
 
     private final StringCell[] m_targetNames;
-
-    private long m_rowIdx = 0;
 
     /**
      * @param targetNames the names of the different targets (must match the number of targets)
@@ -93,7 +89,7 @@ public final class ExplanationToMultiRowConverter implements ExplanationToDataRo
      * {@inheritDoc}
      */
     @Override
-    public void convertAndWrite(final Explanation explanation, final Consumer<DataRow> consumer) {
+    public void convertAndWrite(final Explanation explanation, final Consumer<DataCell[]> consumer) {
         final int numTargets = explanation.getNumberOfTargets();
         CheckUtils.checkArgument(numTargets == m_targetNames.length, "Expected %s targets but the explanation has %s.",
             m_targetNames.length, numTargets);
@@ -105,10 +101,7 @@ public final class ExplanationToMultiRowConverter implements ExplanationToDataRo
             for (int j = 0; j < numFeatures; j++) {
                 cells[j + 2] = new DoubleCell(explanation.getExplanationValue(i, j));
             }
-            final RowKey rowKey = RowKey.createRowKey(m_rowIdx);
-            m_rowIdx++;
-            final DataRow explanationRow = new DefaultRow(rowKey, cells);
-            consumer.accept(explanationRow);
+            consumer.accept(cells);
         }
     }
 

@@ -63,6 +63,8 @@ interface Mask extends IntIterable {
 
     List<DataCell> toCells();
 
+    int getNumberOfFeatures();
+
     /**
      * {@inheritDoc}
      */
@@ -74,4 +76,5 @@ interface Mask extends IntIterable {
      */
     @Override
     boolean equals(Object obj);
+
 }

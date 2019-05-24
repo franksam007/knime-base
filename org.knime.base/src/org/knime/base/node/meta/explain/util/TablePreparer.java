@@ -118,7 +118,7 @@ public final  class TablePreparer {
             m_colManager.checkColumnsContained(samplingSpec);
         } catch (MissingColumnException e) {
             throw new InvalidSettingsException(
-                "The sampling table misses the " + m_purpose + " column " + e.getMissingCol() + ".", e);
+                "The sampling table misses the " + m_purpose + " column " + e.getMissingColumn() + ".", e);
         }
     }
 
@@ -128,7 +128,7 @@ public final  class TablePreparer {
             mgr.checkColumnsContained(inSpec);
         } catch (MissingColumnException e) {
             throw new InvalidSettingsException("The input table does not contain all " + mgrPurpose
-                + " columns. Missing column " + e.getMissingCol() + ".");
+                + " columns. Missing column " + e.getMissingColumn() + ".");
         }
     }
 

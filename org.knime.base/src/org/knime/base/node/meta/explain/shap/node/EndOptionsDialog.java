@@ -75,7 +75,7 @@ class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
     private final JCheckBox m_useElementNames = new JCheckBox("Use element names for collection features");
 
     private final JRadioButton m_automaticColumnSelection =
-        new JRadioButton("All numeric non-feature columns are prediction columns");
+        new JRadioButton("Automatically detect prediction columns");
 
     private final JRadioButton m_manualColumnSelection = new JRadioButton("Manually select prediction columns");
 

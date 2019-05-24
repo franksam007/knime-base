@@ -201,6 +201,14 @@ final class DefaultMask implements Mask {
         return cells;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getNumberOfFeatures() {
+        return m_numFeatures;
+    }
+
     private class ComplementMask implements Mask {
 
         private int m_complementHashCode = 0;
@@ -268,6 +276,15 @@ final class DefaultMask implements Mask {
         @Override
         public List<DataCell> toCells() {
             return DefaultMask.toCells(this.iterator(), m_numFeatures);
+        }
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int getNumberOfFeatures() {
+            return m_numFeatures;
         }
 
     }
