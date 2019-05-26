@@ -52,7 +52,7 @@ package org.knime.base.node.mine.regression.glmnet;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+public final class LinearModel {
 
     private final float m_intercept;
 

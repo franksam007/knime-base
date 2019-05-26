@@ -49,7 +49,9 @@
 package org.knime.base.node.mine.regression.glmnet;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
 import org.knime.core.node.util.CheckUtils;
@@ -58,7 +60,7 @@ import org.knime.core.node.util.CheckUtils;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class ElasticNet {
+public final class ElasticNet {
 
     private final GlmNet m_glmnet;
 
@@ -97,17 +99,17 @@ final class ElasticNet {
     }
 
     private boolean reachedMaxActiveFeatures(final LinearModel model) {
-        int numActiveFeatures = 0;
+        final Set<Integer> activeSet = new HashSet<>();
         for (int i = 0; i < model.getNumCoefficients(); i++) {
             final float coeff = model.getCoefficient(i);
-            if (coeff > m_epsilon) {
-                numActiveFeatures++;
+            if (coeff > m_epsilon || coeff < -m_epsilon) {
+                activeSet.add(i);
             }
-            if (numActiveFeatures >= m_maxActiveFeatures) {
+            if (activeSet.size() >= m_maxActiveFeatures) {
                 break;
             }
         }
-        return numActiveFeatures >= m_maxActiveFeatures;
+        return activeSet.size() >= m_maxActiveFeatures;
     }
 
     public LinearModel getFinalModel() {

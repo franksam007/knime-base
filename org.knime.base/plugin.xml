@@ -2056,6 +2056,10 @@
             deprecated="false"
             factory-class="org.knime.base.node.meta.explain.lime.node.LIMELoopStartNodeFactory">
       </node>
+      <node
+            deprecated="false"
+            factory-class="org.knime.base.node.mine.regression.glmnet.node.GlmNetNodeFactory">
+      </node>
    </extension>
    
       

@@ -44,47 +44,37 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   27.05.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.node;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
+import org.knime.core.data.DoubleValue;
+import org.knime.core.node.defaultnodesettings.DefaultNodeSettingsPane;
+import org.knime.core.node.defaultnodesettings.DialogComponentColumnFilter2;
+import org.knime.core.node.defaultnodesettings.DialogComponentColumnNameSelection;
+import org.knime.core.node.defaultnodesettings.DialogComponentNumber;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public final class RegularizationPath <M> {
+public class GlmNetNodeDialog extends DefaultNodeSettingsPane {
 
-    private final List<M> m_models;
-    private final float[] m_lambdas;
-
-    public RegularizationPath(final List<M> models, final LambdaSequence lambdas) {
-        m_models = new ArrayList<>(models);
-        m_lambdas = getLambdaArray(lambdas, models.size());
-    }
-
-    private static float[] getLambdaArray(final LambdaSequence lambdas, final int numEvaluatedLambdas) {
-        final float[] lambdaArray = new float[numEvaluatedLambdas];
-        for (int i = 0; i < numEvaluatedLambdas; i++) {
-            lambdaArray[i] = lambdas.get(i);
-        }
-        return lambdaArray;
-    }
-
-    public int length() {
-        return m_models.size();
-    }
-
-    public float getLambda(final int idx) {
-        return m_lambdas[idx];
-    }
-
-    public M getModel(final int idx) {
-        return m_models.get(idx);
+    /**
+     *
+     */
+    public GlmNetNodeDialog() {
+        addDialogComponent(new DialogComponentColumnNameSelection(GlmNetNodeModel.createTargetColumnModel(), "Target",
+            0, DoubleValue.class));
+        addDialogComponent(new DialogComponentColumnNameSelection(GlmNetNodeModel.createWeightColumnModel(), "Weight",
+            0, false, true, DoubleValue.class));
+        addDialogComponent(new DialogComponentColumnFilter2(GlmNetNodeModel.createFeatureColumnsModel(), 0));
+        addDialogComponent(new DialogComponentNumber(GlmNetNodeModel.createRoundsModel(), "Rounds", 1));
+        addDialogComponent(new DialogComponentNumber(GlmNetNodeModel.createMaxIterationsModel(), "Max iterations per round", 100));
+        addDialogComponent(new DialogComponentNumber(GlmNetNodeModel.createMaxActiveFeaturesModel(), "Maximum number of active features", 1));
+        addDialogComponent(new DialogComponentNumber(GlmNetNodeModel.createLambdaModel(), "Lambda", 0.1));
+        addDialogComponent(new DialogComponentNumber(GlmNetNodeModel.createAlphaModel(), "Alpha", 0.1));
+        addDialogComponent(new DialogComponentNumber(GlmNetNodeModel.createEpsilonModel(), "Epsilon", 0.0001));
     }
 
 }

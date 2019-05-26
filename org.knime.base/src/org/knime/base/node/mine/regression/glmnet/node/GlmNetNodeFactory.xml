@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<knimeNode icon="./logistic_regression_learn.png" type="Learner" xmlns="http://knime.org/node/v3.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://knime.org/node/v3.6 http://knime.org/node/v3.6.xsd">
+    <name>GlmNet</name>
+    <shortDescription>Creates a regularization path.</shortDescription>
+    <fullDescription>
+        <intro>
+        Creates a regularization path.
+		</intro>
+		<tab name="Settings">
+        </tab>
+	</fullDescription>
+    <ports>
+        <inPort index="0" name="Input data">Table on which to perform regression. The input must not contain missing values, you have to fix them by e.g. using the Missing Values node.</inPort>
+        <outPort index="0" name="Regularization path">Regularization path</outPort>
+	</ports>
+	<!-- 
+	<views>
+		<view index="0" name="Logistic Regression Result View">
+    		Displays the estimated coefficients and error statistics. Note, 
+    		that the estimated coefficients are not reliable when the standard
+    		error is high. If you are using regularization, the error statistics will be
+    		biased but the magnitude of the coefficients will usually be a good indicator
+    		of their importance.
+		</view>
+	</views>
+		 -->
+</knimeNode>

@@ -44,47 +44,58 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   27.05.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.node;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
+import org.knime.core.node.NodeDialogPane;
+import org.knime.core.node.NodeFactory;
+import org.knime.core.node.NodeView;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public final class RegularizationPath <M> {
+public final class GlmNetNodeFactory extends NodeFactory<GlmNetNodeModel> {
 
-    private final List<M> m_models;
-    private final float[] m_lambdas;
-
-    public RegularizationPath(final List<M> models, final LambdaSequence lambdas) {
-        m_models = new ArrayList<>(models);
-        m_lambdas = getLambdaArray(lambdas, models.size());
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GlmNetNodeModel createNodeModel() {
+        return new GlmNetNodeModel();
     }
 
-    private static float[] getLambdaArray(final LambdaSequence lambdas, final int numEvaluatedLambdas) {
-        final float[] lambdaArray = new float[numEvaluatedLambdas];
-        for (int i = 0; i < numEvaluatedLambdas; i++) {
-            lambdaArray[i] = lambdas.get(i);
-        }
-        return lambdaArray;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected int getNrNodeViews() {
+        return 0;
     }
 
-    public int length() {
-        return m_models.size();
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NodeView<GlmNetNodeModel> createNodeView(final int viewIndex, final GlmNetNodeModel nodeModel) {
+        return null;
     }
 
-    public float getLambda(final int idx) {
-        return m_lambdas[idx];
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean hasDialog() {
+        return true;
     }
 
-    public M getModel(final int idx) {
-        return m_models.get(idx);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected NodeDialogPane createNodeDialogPane() {
+        return new GlmNetNodeDialog();
     }
 
 }

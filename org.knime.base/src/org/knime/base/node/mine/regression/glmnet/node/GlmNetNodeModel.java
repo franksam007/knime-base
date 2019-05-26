@@ -53,14 +53,23 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
+import org.knime.base.node.mine.regression.glmnet.ElasticNet;
+import org.knime.base.node.mine.regression.glmnet.ElasticNets;
+import org.knime.base.node.mine.regression.glmnet.LinearModel;
+import org.knime.base.node.mine.regression.glmnet.RegularizationPath;
 import org.knime.base.node.mine.regression.glmnet.data.Data;
 import org.knime.base.node.mine.regression.glmnet.data.ModularDataBuilder;
 import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
 import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequences;
+import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
 import org.knime.core.data.DoubleValue;
+import org.knime.core.data.RowKey;
+import org.knime.core.data.container.ColumnRearranger;
+import org.knime.core.data.def.DefaultRow;
 import org.knime.core.data.def.DoubleCell;
+import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
@@ -141,6 +150,8 @@ final class GlmNetNodeModel extends NodeModel {
 
     private final SettingsModelDoubleBounded m_epsilon = createEpsilonModel();
 
+    private String[] m_featureNames;
+
     /**
      */
     public GlmNetNodeModel() {
@@ -154,13 +165,13 @@ final class GlmNetNodeModel extends NodeModel {
     protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
         final DataTableSpec inSpec = inSpecs[DATA_PORT_IDX];
         final FilterResult fr = m_featureColumns.applyTo(inSpec);
-
-        return new DataTableSpec[]{createOutspec(fr.getIncludes())};
+        m_featureNames = fr.getIncludes();
+        return new DataTableSpec[]{createOutspec()};
     }
 
-    private static DataTableSpec createOutspec(final String[] featureNames) {
+    private DataTableSpec createOutspec() {
         final String[] colNames =
-            Stream.concat(Stream.of("Intercept"), Arrays.stream(featureNames)).toArray(String[]::new);
+            Stream.concat(Stream.of("Lambda", "Intercept"), Arrays.stream(m_featureNames)).toArray(String[]::new);
         final DataType[] colTypes =
             Stream.generate(() -> DoubleCell.TYPE).limit(colNames.length).toArray(DataType[]::new);
         return new DataTableSpec(colNames, colTypes);
@@ -173,24 +184,58 @@ final class GlmNetNodeModel extends NodeModel {
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
         throws Exception {
         final BufferedDataTable table = inData[DATA_PORT_IDX];
-        final Data data = createData(table);
+        final Data data = createData(filterTable(table, exec.createSilentSubExecutionContext(0.0)));
         final float lambda = (float)m_lambda.getDoubleValue();
         final float alpha = (float)m_alpha.getDoubleValue();
         final float epsilon = (float)m_epsilon.getDoubleValue();
         final LambdaSequence lambdas = LambdaSequences.lambdaMinLogScale(lambda, m_rounds.getIntValue(), alpha, data);
+        final ElasticNet elasticNet = ElasticNets.createElasticNet(data, lambdas, alpha, epsilon,
+            m_maxIterations.getIntValue(), m_maxActiveFeatures.getIntValue());
+        elasticNet.fit();
+        final RegularizationPath<LinearModel> path = elasticNet.getRegularizationPath();
 
+        return new BufferedDataTable[]{write(path, exec.createDataContainer(createOutspec()))};
+    }
 
-        return super.execute(inData, exec);
+    private static BufferedDataTable write(final RegularizationPath<LinearModel> path, final BufferedDataContainer container) {
+        for (int i = 0; i < path.length(); i++) {
+            container.addRowToTable(toRow(path.getLambda(i), path.getModel(i), i));
+        }
+        container.close();
+        return container.getTable();
+    }
+
+    private static DataRow toRow(final float lambda, final LinearModel model, final long idx) {
+        final double[] values = new double[model.getNumCoefficients() + 2];
+        values[0] = lambda;
+        values[1] = model.getIntercept();
+        for (int i = 2; i < values.length; i++) {
+            values[i] = model.getCoefficient(i - 2);
+        }
+        return new DefaultRow(RowKey.createRowKey(idx), values);
     }
 
     private Data createData(final BufferedDataTable table) {
         final DataTableSpec tableSpec = table.getDataTableSpec();
         final int targetIdx = tableSpec.findColumnIndex(m_targetColumn.getStringValue());
-        CheckUtils.checkArgument(targetIdx >= 0, "Can't find the target column %s.", m_targetColumn.getStringValue());
-        assert targetIdx >= 0 : "Can't find the target column.";
+        CheckUtils.checkState(targetIdx >= 0, "Can't find the target column %s.", m_targetColumn.getStringValue());
         final int weightIdx = tableSpec.findColumnIndex(m_weightColumn.getStringValue());
         final ModularDataBuilder builder = new ModularDataBuilder(table, targetIdx, weightIdx);
         return builder.build();
+    }
+
+    private BufferedDataTable filterTable(final BufferedDataTable table, final ExecutionContext exec)
+        throws CanceledExecutionException {
+        final DataTableSpec tableSpec = table.getDataTableSpec();
+        final FilterResult fr = m_featureColumns.applyTo(tableSpec);
+        Stream<String> relevantCols =
+            Stream.concat(Stream.of(m_targetColumn.getStringValue()), Arrays.stream(fr.getIncludes()));
+        if (tableSpec.findColumnIndex(m_weightColumn.getStringValue()) >= 0) {
+            relevantCols = Stream.concat(Stream.of(m_weightColumn.getStringValue()), relevantCols);
+        }
+        final ColumnRearranger cr = new ColumnRearranger(tableSpec);
+        cr.keepOnly(relevantCols.toArray(String[]::new));
+        return exec.createColumnRearrangeTable(table, cr, exec);
     }
 
     /**
