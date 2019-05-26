@@ -48,21 +48,15 @@
  */
 package org.knime.base.node.mine.regression.glmnet;
 
-import org.knime.base.node.mine.regression.glmnet.Data.DataIterator;
+import org.knime.base.node.mine.regression.glmnet.data.DataIterator;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-class NaiveUpdater extends AbstractUpdater {
+enum NaiveUpdater implements Updater {
 
-    /**
-     * @param data
-     */
-    public NaiveUpdater(final Data data) {
-        super(data);
-    }
-
+    INSTANCE;
 
     /**
      * {@inheritDoc}
@@ -81,13 +75,14 @@ class NaiveUpdater extends AbstractUpdater {
         }
     }
 
-    private float calculateResidualProduct(final DataIterator iter) {
+    private static float calculateResidualProduct(final DataIterator iter) {
         float sum = 0.0F;
         while (iter.next()) {
             sum += iter.getWeight() * iter.getFeature() * iter.getResidual();
         }
         sum -= iter.getFeatureMean() * iter.getTotalWeightedResidual();
-        return sum / m_data.getTotalWeight();
+        // we require that all weights sum up to one therefore sum must not be normalized here
+        return sum;
     }
 
     /**

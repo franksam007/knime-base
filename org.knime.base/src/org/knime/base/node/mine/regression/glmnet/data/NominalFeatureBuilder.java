@@ -46,39 +46,88 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.knime.core.data.NominalValue;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+final class NominalFeatureBuilder extends AbstractFeatureBuilder<NominalValue> {
 
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+    private final Map<NominalValue, Integer> m_indices = new HashMap<>();
+    private final List<Integer> m_counts = new ArrayList<>();
+    private final int[] m_values;
+    private int m_idx;
 
     /**
-     *
+     * @param colIdx
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public NominalFeatureBuilder(final int colIdx, final int numRows) {
+        super(colIdx, NominalValue.class);
+        m_values = new int[numRows];
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public Collection<Feature> build() {
+        final List<Feature> features = new ArrayList<>(m_counts.size());
+        for (int i = 0; i < m_counts.size(); i++) {
+            features.add(createFeature(i));
+        }
+        return features;
+    }
+
+    private Feature createFeature(final int featureIdx) {
+        final int count = m_counts.get(featureIdx);
+        final int[] matching = new int[count];
+        int matchingIdx = 0;
+        for (int i = 0; i < m_values.length; i++) {
+            if (m_values[i] == featureIdx) {
+                matching[matchingIdx] = i;
+                matchingIdx++;
+            }
+        }
+        // TODO possibly scale the value by the standard deviation
+        final ConstantValueHolder valueHolder = new ConstantValueHolder(1.0f, count);
+        return new SparseFeature(matching, valueHolder);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void accept(final NominalValue value) {
+        final int valIdx = getValueIndex(value);
+        incrementCount(valIdx);
+        m_values[m_idx] = valIdx;
+        m_idx++;
+    }
+
+    private int getValueIndex(final NominalValue value) {
+        Integer valIdx = m_indices.get(value);
+        if (valIdx == null) {
+            valIdx = m_indices.size();
+            m_indices.put(value, valIdx);
+            m_counts.add(0);
+        }
+
+        return valIdx;
+    }
+
+    private void incrementCount(final int valIdx) {
+        final int currentCount = m_counts.get(valIdx);
+        m_counts.set(valIdx, currentCount + 1);
     }
 
 }

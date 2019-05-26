@@ -46,39 +46,66 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+final class SparseFeature implements Feature {
 
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+    private final int[] m_nonZeroIndices;
+    private final ValueHolder m_values;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    SparseFeature(final int[] nonZeroIndices, final ValueHolder values) {
+        assert nonZeroIndices.length == values.size();
+        m_nonZeroIndices = nonZeroIndices;
+        m_values = values;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public void scale(final float scale) {
+        m_values.scale(scale);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public FeatureIterator getIterator() {
+        return new SparseFeatureIterator();
+    }
+
+    private class SparseFeatureIterator extends AbstractFeatureIterator {
+
+        /**
+         */
+        public SparseFeatureIterator() {
+            super(m_nonZeroIndices.length);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int getRowIdx() {
+            return m_nonZeroIndices[m_idx];
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public float getValue() {
+            return m_values.get(m_idx);
+        }
+
     }
 
 }

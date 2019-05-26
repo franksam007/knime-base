@@ -44,41 +44,72 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   24.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
+
+import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+public class FeatureNormalizer {
 
-    private final float m_intercept;
+    private final boolean m_center;
 
-    private final float[] m_coefficients;
+    private final boolean m_scale;
+
+    private float m_mean = 0.0f;
+
+    private float m_stdv;
+
+    private boolean m_normalized = false;
+
+    private final int m_numRows;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
+    public FeatureNormalizer(final boolean center, final boolean scale, final int numRows) {
+        CheckUtils.checkArgument(center || scale, "Using a FeatureNormalizer is superfluous if it is not used for normalization.");
+        m_center = center;
+        m_scale = scale;
+        m_numRows = numRows;
     }
 
-    public float getIntercept() {
-        return m_intercept;
+
+    public void acceptFeature(final float value) {
+        CheckUtils.checkState(!m_normalized, "It is not allowed to add more values after the mean has been normalized.");
+        m_mean += value;
     }
 
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    private void normalizeMean() {
+        m_mean /= m_numRows;
     }
 
-    /**
-     * @return The number of coefficients excluding the intercept.
-     */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    private void normalize(final ValueIterable featureIterable) {
+        if (m_scale) {
+            initStdv(featureIterable.iterator());
+        }
+        normalize(featureIterable.iterator());
+    }
+
+    private void normalize(final ValueIterator iter) {
+        while (iter.hasNext()) {
+            final float x = iter.next();
+            // TODO figure out if this is actually a smart thing to do
+        }
+    }
+
+    private void initStdv(final ValueIterator iter) {
+        while (iter.hasNext()) {
+            final float x = iter.next();
+            final float diff = x - m_mean;
+            m_stdv += diff * diff;
+        }
+        m_stdv /= m_numRows;
+        m_stdv = (float)Math.sqrt(m_stdv);
     }
 
 }

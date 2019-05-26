@@ -44,41 +44,39 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   24.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+ * @author Adrian Nembach, KNIME GmbH, konstanz, Germany
  */
-final class LinearModel {
+class DenseBuffer {
 
-    private final float m_intercept;
+    final float[] m_storage;
 
-    private final float[] m_coefficients;
+    private int m_write;
+
+    private int m_read;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
+    public DenseBuffer(final int capacity) {
+        m_storage = new float[capacity];
     }
 
-    public float getIntercept() {
-        return m_intercept;
+
+    void write(final float value) {
+        m_storage[m_write] = value;
+        m_write++;
     }
 
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
-    }
-
-    /**
-     * @return The number of coefficients excluding the intercept.
-     */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    float read() {
+        final float value = m_storage[m_read];
+        m_read++;
+        return value;
     }
 
 }

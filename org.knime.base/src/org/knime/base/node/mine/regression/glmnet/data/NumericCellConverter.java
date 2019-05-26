@@ -44,41 +44,35 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   24.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
+
+import java.util.Iterator;
+
+import org.knime.core.data.DataCell;
+import org.knime.core.data.DoubleValue;
+import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+public enum NumericCellConverter implements CellConverter {
 
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+        INSTANCE;
 
     /**
-     *
+     * {@inheritDoc}
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
-    }
-
-    /**
-     * @return The number of coefficients excluding the intercept.
-     */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public void readCell(final DataCell cell, final Iterator<DenseBuffer> bufferIterator) {
+        CheckUtils.checkState(bufferIterator.hasNext(), "No buffer available.");
+        CheckUtils.checkArgument(cell instanceof DoubleValue,
+            "Invalid cell type for NumericCellConverter '" + cell.getClass() + "'.");
+        final DoubleValue value = (DoubleValue)cell;
+        final DenseBuffer buffer = bufferIterator.next();
+        buffer.write((float)value.getDoubleValue());
     }
 
 }

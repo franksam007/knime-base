@@ -48,13 +48,16 @@
  */
 package org.knime.base.node.mine.regression.glmnet;
 
+import org.knime.base.node.mine.regression.glmnet.cycle.FeatureCycle;
+import org.knime.base.node.mine.regression.glmnet.cycle.FeatureCycleFactory;
+import org.knime.base.node.mine.regression.glmnet.data.Data;
 import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public class GlmNet {
+final class GlmNet {
 
     private final float[] m_coefficients;
 

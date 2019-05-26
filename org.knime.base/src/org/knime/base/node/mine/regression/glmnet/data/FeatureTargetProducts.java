@@ -44,41 +44,55 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   28.04.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
+
+import java.util.Arrays;
 
 /**
+ * Helper class for DefaultData that lazily calculates and stores weighted inner feature-target products.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+final class FeatureTargetProducts {
 
-    private final float m_intercept;
+    private final float[] m_products;
 
-    private final float[] m_coefficients;
+    private final boolean[] m_alreadyCalculated;
+
+    private final Data m_data;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
+    FeatureTargetProducts(final Data data) {
+        m_data = data;
+        int numFeatures = data.getNumFeatures();
+        m_products = new float[numFeatures];
+        m_alreadyCalculated = new boolean[numFeatures];
     }
 
-    public float getIntercept() {
-        return m_intercept;
+    float getFeatureTargetProduct(final int featureIdx) {
+        if (m_alreadyCalculated[featureIdx]) {
+            return m_products[featureIdx];
+        }
+        final float product = calculateWeightedInnerProduct(m_data.getIterator(featureIdx));
+        m_products[featureIdx] = product;
+        m_alreadyCalculated[featureIdx] = true;
+        return product;
     }
 
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    private static float calculateWeightedInnerProduct(final DataIterator iter) {
+        float prod = 0;
+        while (iter.next()) {
+            prod += iter.getWeight() * iter.getFeature() * iter.getTarget();
+        }
+        return prod;
     }
 
-    /**
-     * @return The number of coefficients excluding the intercept.
-     */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    void weightsChanged() {
+        Arrays.fill(m_alreadyCalculated, false);
     }
 
 }

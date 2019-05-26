@@ -46,39 +46,61 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.cycle;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+final class RoundRobinFeatureCycleStrategy implements FeatureCycle {
 
-    private final float m_intercept;
+    private boolean m_changeInLastCycle = true;
 
-    private final float[] m_coefficients;
+    private int m_featureIdx = -1;
+
+    private final int m_numFeatures;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public RoundRobinFeatureCycleStrategy(final int numFeatures) {
+        m_numFeatures = numFeatures;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public boolean hasNext() {
+        return m_featureIdx < m_numFeatures || m_changeInLastCycle;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int next() {
+        m_featureIdx++;
+        if (m_featureIdx == m_numFeatures) {
+            beginNewCycle();
+        }
+        return m_featureIdx;
+    }
+
+    private void beginNewCycle() {
+        m_featureIdx = 0;
+        m_changeInLastCycle = false;
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void betaChanged() {
+        m_changeInLastCycle = true;
+    }
+
+
 
 }

@@ -44,41 +44,29 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   26.05.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.cycle;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
-
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+public final class FeatureCycleFactories {
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
+    private FeatureCycleFactories() {
+        // static factory class
     }
 
-    public float getIntercept() {
-        return m_intercept;
+    public static FeatureCycleFactory createActiveSetFeatureCycleFactory(final int numFeatures) {
+        return () -> new ActiveSetFeatureCycleStrategy(numFeatures);
     }
 
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
-    }
-
-    /**
-     * @return The number of coefficients excluding the intercept.
-     */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    public static FeatureCycleFactory createRoundRobinFeaturCycleFactory(final int numFeatures) {
+        return () -> new RoundRobinFeatureCycleStrategy(numFeatures);
     }
 
 }

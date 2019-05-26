@@ -51,41 +51,73 @@ package org.knime.base.node.mine.regression.glmnet;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
 import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-class ElasticNet {
+final class ElasticNet {
 
     private final GlmNet m_glmnet;
-    private final float[] m_lambdas;
-    private List<LinearModel> m_models;
+
+    private final LambdaSequence m_lambdas;
+
+    private final List<LinearModel> m_models;
+
+    private final int m_maxActiveFeatures;
+
+    /**
+     * Used to check if a feature is active or not (might be extracted into separate class in the future)
+     */
+    private final float m_epsilon;
 
     /**
      *
      */
-    public ElasticNet(final Data data, final GlmNet glmnet, final float[] lambdas) {
+    public ElasticNet(final GlmNet glmnet, final LambdaSequence lambdas, final int maxActiveFeatures,
+        final float epsilon) {
         m_glmnet = glmnet;
-        m_lambdas = lambdas.clone();
-        m_models = new ArrayList<>(m_lambdas.length);
+        m_lambdas = lambdas;
+        m_models = new ArrayList<>(m_lambdas.length());
+        m_maxActiveFeatures = maxActiveFeatures;
+        m_epsilon = epsilon;
     }
 
     public void fit() {
-        for (float lambda : m_lambdas) {
+        for (int i = 0; i < m_lambdas.length(); i++) {
+            final float lambda = m_lambdas.get(i);
             final LinearModel model = m_glmnet.fit(lambda);
             m_models.add(model);
+            if (reachedMaxActiveFeatures(model)) {
+                break;
+            }
         }
     }
 
+    private boolean reachedMaxActiveFeatures(final LinearModel model) {
+        int numActiveFeatures = 0;
+        for (int i = 0; i < model.getNumCoefficients(); i++) {
+            final float coeff = model.getCoefficient(i);
+            if (coeff > m_epsilon) {
+                numActiveFeatures++;
+            }
+            if (numActiveFeatures >= m_maxActiveFeatures) {
+                break;
+            }
+        }
+        return numActiveFeatures >= m_maxActiveFeatures;
+    }
+
     public LinearModel getFinalModel() {
-        CheckUtils.checkState(!m_models.isEmpty(), "The fit method has to be called before the final model can be fetched.");
+        CheckUtils.checkState(!m_models.isEmpty(),
+            "The fit method has to be called before the final model can be fetched.");
         return m_models.get(m_models.size() - 1);
     }
 
-    public RegularizationPath getRegularizationPath() {
-        return new RegularizationPath(m_models, m_lambdas);
+    public RegularizationPath<LinearModel> getRegularizationPath() {
+        return new RegularizationPath<>(m_models, m_lambdas);
     }
 
 }

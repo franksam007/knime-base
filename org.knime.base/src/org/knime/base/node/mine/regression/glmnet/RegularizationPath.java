@@ -51,6 +51,8 @@ package org.knime.base.node.mine.regression.glmnet;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
+
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
@@ -60,9 +62,17 @@ class RegularizationPath <M> {
     private final List<M> m_models;
     private final float[] m_lambdas;
 
-    public RegularizationPath(final List<M> models, final float[] lambdas) {
-        m_models = new ArrayList(models);
-        m_lambdas = lambdas.clone();
+    public RegularizationPath(final List<M> models, final LambdaSequence lambdas) {
+        m_models = new ArrayList<>(models);
+        m_lambdas = getLambdaArray(lambdas, models.size());
+    }
+
+    private static float[] getLambdaArray(final LambdaSequence lambdas, final int numEvaluatedLambdas) {
+        final float[] lambdaArray = new float[numEvaluatedLambdas];
+        for (int i = 0; i < numEvaluatedLambdas; i++) {
+            lambdaArray[i] = lambdas.get(i);
+        }
+        return lambdaArray;
     }
 
 }

@@ -46,39 +46,48 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
+
+import org.knime.core.data.DataCell;
+import org.knime.core.data.DataRow;
+import org.knime.core.data.DataValue;
+import org.knime.core.node.util.CheckUtils;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+abstract class AbstractFeatureBuilder<T extends DataValue> implements FeatureBuilder {
 
-    private final float m_intercept;
+    private final int m_colIdx;
 
-    private final float[] m_coefficients;
+    private final Class<T> m_valueType;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public AbstractFeatureBuilder(final int colIdx, final Class<T> valueType) {
+        CheckUtils.checkNotNull(valueType, "The parameter valueType must not be null.");
+        CheckUtils.checkArgument(colIdx >= 0, "The colIdx must be non-negative but was %s.", colIdx);
+        m_colIdx = colIdx;
+        m_valueType = valueType;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public final void accept(final DataRow row) {
+        final DataCell cell = row.getCell(m_colIdx);
+        CheckUtils.checkState(!cell.isMissing(),
+            "Encountered missing value in row %s. Missing values are not supported.", row.getKey());
+        CheckUtils.checkState(m_valueType.isInstance(cell), "Expected type %s but instead encountered type %s.",
+            m_valueType.getCanonicalName(), cell.getClass().getCanonicalName());
+        @SuppressWarnings("unchecked") // we explicitly check if this cast is allowed
+        final T value = (T)cell;
+        accept(value);
     }
+
+    protected abstract void accept(final T value);
 
 }

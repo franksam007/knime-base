@@ -46,39 +46,39 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+class ConstantWeightContainer implements WeightContainer {
 
-    private final float m_intercept;
+    private final float m_weight;
 
-    private final float[] m_coefficients;
+    private final int m_numRows;
 
-    /**
-     *
-     */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public ConstantWeightContainer(final int numRows) {
+        m_weight = 1.0F / numRows;
+        m_numRows = numRows;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public float get(final int idx) {
+        // avoid unnecessary check (if this becomes a public method replace with proper check)
+        assert idx >= 0 && idx < m_numRows : "Index must be in [0, " + m_numRows + ") but was " + idx;
+        return m_weight;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public float getTotal() {
+        return 1.0F;
     }
 
 }

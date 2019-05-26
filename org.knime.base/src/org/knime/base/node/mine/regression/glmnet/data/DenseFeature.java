@@ -46,39 +46,67 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+class DenseFeature implements Feature {
 
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+    private final float[] m_values;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public DenseFeature(final float[] values) {
+        m_values = values;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public FeatureIterator getIterator() {
+        return new DenseFeatureIterator();
+    }
+
+    private class DenseFeatureIterator extends AbstractFeatureIterator {
+
+        /**
+         *
+         */
+        public DenseFeatureIterator() {
+            super(m_values.length);
+        }
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int getRowIdx() {
+            return m_idx;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public float getValue() {
+            return m_values[m_idx];
+        }
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void scale(final float scale) {
+        for (int i = 0; i < m_values.length; i++) {
+            m_values[i] *= scale;
+        }
     }
 
 }

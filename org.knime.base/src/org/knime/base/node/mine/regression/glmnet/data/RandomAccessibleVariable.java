@@ -44,41 +44,41 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   27.04.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+final class RandomAccessibleVariable implements RandomAccessible, Variable {
 
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+    private final float[] m_values;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public RandomAccessibleVariable(final float[] values) {
+        m_values = values.clone();
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public float get(final int idx) {
+        return m_values[idx];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void scale(final float scale) {
+        for (int i = 0; i < m_values.length; i++) {
+            m_values[i] *= scale;
+        }
     }
 
 }

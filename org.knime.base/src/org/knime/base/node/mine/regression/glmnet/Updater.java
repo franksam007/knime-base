@@ -48,7 +48,7 @@
  */
 package org.knime.base.node.mine.regression.glmnet;
 
-import org.knime.base.node.mine.regression.glmnet.Data.DataIterator;
+import org.knime.base.node.mine.regression.glmnet.data.DataIterator;
 
 /**
  *

@@ -42,43 +42,50 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
- *
+ * 
  * History
- *   31.03.2019 (Adrian): created
+ *   26.05.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
-/**
- *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- */
-final class LinearModel {
-
-    private final float m_intercept;
-
-    private final float[] m_coefficients;
+final class ConstantValueHolder implements ValueHolder {
+    private float m_value;
+    private final int m_numValues;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
-
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    public ConstantValueHolder(final float value, final int numValues) {
+        m_value = value;
+        m_numValues = numValues;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public float get(final int idx) {
+        if (idx < 0 || idx >= m_numValues) {
+            throw new IndexOutOfBoundsException();
+        }
+        return m_value;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return m_numValues;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void scale(final float scale) {
+        m_value *= scale;
+    }
+
 
 }

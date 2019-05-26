@@ -46,39 +46,48 @@
  * History
  *   31.03.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class LinearModel {
+final class VariableWeightContainer implements WeightContainer {
 
-    private final float m_intercept;
+    private final float[] m_weights;
 
-    private final float[] m_coefficients;
+    private final float m_total;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
+    public VariableWeightContainer(final float[] weights) {
+        m_weights = weights.clone();
+        m_total = calculateTotal(m_weights);
     }
 
-    public float getIntercept() {
-        return m_intercept;
-    }
-
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
+    private static float calculateTotal(final float[] weights) {
+        float total = 0f;
+        for (float weight : weights) {
+            total += weight;
+        }
+        return total;
     }
 
     /**
-     * @return The number of coefficients excluding the intercept.
+     * {@inheritDoc}
      */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
+    @Override
+    public float get(final int idx) {
+        return m_weights[idx];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public float getTotal() {
+        return m_total;
     }
 
 }

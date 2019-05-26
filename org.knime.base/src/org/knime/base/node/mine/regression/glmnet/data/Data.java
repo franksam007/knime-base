@@ -44,41 +44,32 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   31.03.2019 (Adrian): created
+ *   26.05.2019 (Adrian): created
  */
-package org.knime.base.node.mine.regression.glmnet;
+package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+ * @author Adrian
  */
-final class LinearModel {
+public interface Data {
 
-    private final float m_intercept;
+    int getNumRows();
 
-    private final float[] m_coefficients;
+    int getNumFeatures();
 
-    /**
-     *
-     */
-    public LinearModel(final float intercept, final float[] coefficients) {
-        m_intercept = intercept;
-        m_coefficients = coefficients.clone();
-    }
+    float getTotalWeight();
 
-    public float getIntercept() {
-        return m_intercept;
-    }
+    float getWeightedStdv(int featureIdx);
 
-    public float getCoefficient(final int featureIdx) {
-        return m_coefficients[featureIdx];
-    }
+    float getWeightedSquaredMean(int featureIdx);
 
-    /**
-     * @return The number of coefficients excluding the intercept.
-     */
-    public int getNumCoefficients() {
-        return m_coefficients.length;
-    }
+    DataIterator getIterator(int featureIdx);
+
+    float getWeightedMean(int featureIdx);
+
+    float getWeightedMeanTarget();
+
+    float getWeightedInnerFeatureTargetProduct(final int featureIdx);
 
 }
