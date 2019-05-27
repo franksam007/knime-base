@@ -94,13 +94,13 @@ final class GlmNet {
         m_maxIterations = maxIterations;
         m_featureCycleFactory = featureCycleFactory;
         m_updater = updater;
+        calculateIntercept();
     }
 
 
     public LinearModel fit(final float lambda) {
         CheckUtils.checkArgument(lambda >= 0, "Lambda must be a non-negative value but was %s.", lambda);
         m_lambda = lambda;
-        calculateIntercept();
         final FeatureCycle featureCycle = m_featureCycleFactory.create();
         for (int i = 0; i < m_maxIterations && featureCycle.hasNext(); i++) {
             final int featureIdx = featureCycle.next();
@@ -149,7 +149,13 @@ final class GlmNet {
         // TODO figure out where this notion of mean response comes from
 //        float meanResponse = calculateMeanResponse();
         // for now we will use the mean target as eluded to in the paper
+        final float delta = meanTarget - m_intercept;
         m_intercept = meanTarget;
+        m_data.updateResidual(delta);
+    }
+
+    private void updateResidualsWithIntercept() {
+
     }
 
     /**

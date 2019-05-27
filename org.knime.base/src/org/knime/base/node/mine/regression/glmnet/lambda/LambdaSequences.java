@@ -73,7 +73,8 @@ public final class LambdaSequences {
      * @param data the training data
      * @return a log scale {@link LambdaSequence}
      */
-    public static LambdaSequence epsilonLogScale(final float epsilon, final int steps, final float alpha, final Data data) {
+    public static LambdaSequence epsilonLogScale(final float epsilon, final int steps, final float alpha,
+        final Data data) {
         final float lambdaMax = computeLambdaMax(alpha, data);
         final float lambdaMin = epsilon * lambdaMax;
         return logScaleSequence(lambdaMax, lambdaMin, steps);
@@ -95,6 +96,8 @@ public final class LambdaSequences {
     private static LambdaSequence logScaleSequence(final float lambdaMax, final float lambdaMin, final int steps) {
         final float[] lambdas = createDecreasingSequence((float)Math.log(lambdaMax), (float)Math.log(lambdaMin), steps);
         inplaceExp(lambdas);
+        // set lambdaMin to the exact values to correct rounding errors
+        lambdas[lambdas.length - 1] = lambdaMin;
         return new ArrayLambdaSequence(lambdas);
     }
 

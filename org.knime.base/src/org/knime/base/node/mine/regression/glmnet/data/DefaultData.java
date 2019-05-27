@@ -102,6 +102,17 @@ public final class DefaultData implements Data {
         m_innerFeatureTargetProducts = new FeatureTargetProducts(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateResidual(final float interceptDelta) {
+        for (int i = 0; i < m_target.length; i++) {
+            m_residuals[i] -= interceptDelta;
+            m_totalWeightedResidual -= m_weights.get(i) * interceptDelta;
+        }
+    }
+
     private void scaleFeatures() {
         for (int i = 0; i < m_features.length; i++) {
             m_features[i].scale(1.0f / m_weightedStdv[i]);
@@ -119,18 +130,21 @@ public final class DefaultData implements Data {
         final Feature feature = m_features[f];
         float wm = 0;
         float wsm = 0;
+        float m = 0;
         final FeatureIterator iter = feature.getIterator();
         while (iter.next()) {
             final float value = iter.getValue();
             final float weight = m_weights.get(iter.getRowIdx());
             wm += weight * value;
             wsm += weight * value * value;
+            m += value;
         }
         final float variance = wsm - wm * wm;
         final float std = (float)Math.sqrt(variance);
+        final float unweightedMean = m / getNumRows();
         assert std > 0 : "Zero standard deviation detected. This can only happen for constant columns.";
         m_weightedScaledMeans[f] = wm / std;
-        m_weightedSquaredMeans[f] = (wsm - wm) / (std * std);
+        m_weightedSquaredMeans[f] = (wsm - 2 * unweightedMean * wm + unweightedMean) / (std * std);
         m_weightedStdv[f] = std;
     }
 

@@ -54,7 +54,7 @@ package org.knime.base.node.mine.regression.glmnet.cycle;
  */
 final class RoundRobinFeatureCycleStrategy implements FeatureCycle {
 
-    private boolean m_changeInLastCycle = true;
+    private boolean m_changeInLastCycle = false;
 
     private int m_featureIdx = -1;
 
@@ -72,7 +72,11 @@ final class RoundRobinFeatureCycleStrategy implements FeatureCycle {
      */
     @Override
     public boolean hasNext() {
-        return m_featureIdx < m_numFeatures || m_changeInLastCycle;
+        if (m_featureIdx == m_numFeatures - 1) {
+            return m_changeInLastCycle;
+        } else {
+            return m_featureIdx < m_numFeatures - 1;
+        }
     }
 
     /**
@@ -80,18 +84,12 @@ final class RoundRobinFeatureCycleStrategy implements FeatureCycle {
      */
     @Override
     public int next() {
-        m_featureIdx++;
-        if (m_featureIdx == m_numFeatures) {
-            beginNewCycle();
+        if (m_featureIdx == m_numFeatures - 1 && m_changeInLastCycle) {
+            m_featureIdx = -1;
         }
+        m_featureIdx++;
         return m_featureIdx;
     }
-
-    private void beginNewCycle() {
-        m_featureIdx = 0;
-        m_changeInLastCycle = false;
-    }
-
 
     /**
      * {@inheritDoc}
@@ -100,7 +98,5 @@ final class RoundRobinFeatureCycleStrategy implements FeatureCycle {
     public void betaChanged() {
         m_changeInLastCycle = true;
     }
-
-
 
 }

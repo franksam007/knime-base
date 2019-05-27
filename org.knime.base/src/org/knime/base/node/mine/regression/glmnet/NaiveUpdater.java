@@ -67,10 +67,12 @@ enum NaiveUpdater implements Updater {
     }
 
     private static void updateResiduals(final DataIterator iter, final float betaDiff) {
+        final float scaledMean = iter.getFeatureMean();
         while (iter.next()) {
             final float oldResidual = iter.getResidual();
-            final float responseDiff = iter.getFeature() * betaDiff;
-            final float newResidual = oldResidual + responseDiff;
+            // TODO subtract scaled mean!
+            final float responseDiff = (iter.getFeature() - scaledMean) * betaDiff;
+            final float newResidual = oldResidual - responseDiff;
             iter.setResidual(newResidual);
         }
     }

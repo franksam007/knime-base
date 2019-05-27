@@ -61,7 +61,7 @@ public abstract class AbstractFeatureIterator implements FeatureIterator {
     /**
      * The current index
      */
-    protected int m_idx;
+    protected int m_idx = -1;
 
     /**
      *

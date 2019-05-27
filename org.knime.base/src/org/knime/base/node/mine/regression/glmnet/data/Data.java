@@ -72,4 +72,6 @@ public interface Data {
 
     float getWeightedInnerFeatureTargetProduct(final int featureIdx);
 
+    void updateResidual(final float interceptDelta);
+
 }
