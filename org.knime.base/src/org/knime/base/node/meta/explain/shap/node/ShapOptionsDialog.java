@@ -48,20 +48,21 @@
  */
 package org.knime.base.node.meta.explain.shap.node;
 
+import javax.swing.JPanel;
+
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.node.NodeSettingsRO;
-import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.NotConfigurableException;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface ShapSettings {
+interface ShapOptionsDialog<S extends ShapSettings> {
 
-    void saveSettings(final NodeSettingsWO settings);
+    JPanel getPanel();
 
-    void loadSettingsInModel(final NodeSettingsRO settings) throws InvalidSettingsException;
+    void saveSettingsTo(final S settings) throws InvalidSettingsException;
 
-    void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec[] inSpecs);
+    void loadSettingsFrom(final S settings, final DataTableSpec[] inSpecs) throws NotConfigurableException;
 }

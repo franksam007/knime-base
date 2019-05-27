@@ -44,24 +44,42 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   May 23, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 27, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.base.node.meta.explain.shap.node;
-
-import javax.swing.JPanel;
-
-import org.knime.core.data.DataTableSpec;
-import org.knime.core.node.InvalidSettingsException;
+package org.knime.base.node.meta.explain.util.iter;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface OptionsDialog<S extends ShapSettings> {
+final class ConstantDoubleIterator implements DoubleIterator {
 
-    JPanel getPanel();
+    private final double m_value;
 
-    void saveSettingsTo(final S settings) throws InvalidSettingsException;
+    private final long m_size;
 
-    void loadSettingsFrom(final S settings, final DataTableSpec inSpec);
+    private long m_idx = -1;
+
+    ConstantDoubleIterator(final double value, final long size) {
+        m_value = value;
+        m_size = size;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean hasNext() {
+        return m_idx < m_size - 1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double next() {
+        m_idx++;
+        return m_value;
+    }
+
 }

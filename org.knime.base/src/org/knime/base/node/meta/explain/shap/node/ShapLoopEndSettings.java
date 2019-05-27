@@ -95,8 +95,8 @@ public class ShapLoopEndSettings implements ShapSettings {
     private PredictionColumnSelectionMode m_predictionColumnSelectionMode = PredictionColumnSelectionMode.AUTOMATIC;
 
     @Override
-    public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
-        m_predictionCols.loadConfigurationInDialog(settings, inSpec);
+    public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec[] inSpecs) {
+        m_predictionCols.loadConfigurationInDialog(settings, inSpecs[0]);
         m_useElementNames = settings.getBoolean(CFG_USE_ELEMENT_NAMES, false);
         m_predictionColumnSelectionMode = PredictionColumnSelectionMode.valueOf(
             settings.getString(CFG_PREDICTION_COLUMN_SELECTION_MODE, PredictionColumnSelectionMode.AUTOMATIC.name()));

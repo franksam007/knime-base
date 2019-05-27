@@ -48,6 +48,7 @@
  */
 package org.knime.base.node.meta.explain.shap.node;
 
+import java.util.Optional;
 import java.util.Random;
 
 import org.knime.core.data.DataTableSpec;
@@ -57,11 +58,15 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
 
 /**
- * TODO unify settings for Shapley Values and ModelExplainer
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
 public class ShapLoopStartSettings implements ShapSettings {
+
+    /**
+     *
+     */
+    private static final String CFG_SAMPLING_WEIGHT_COLUMN = "samplingWeightColumn";
 
     private static final String CFG_SEED = "seed";
 
@@ -83,17 +88,20 @@ public class ShapLoopStartSettings implements ShapSettings {
 
     private boolean m_treatAllColumnsAsSingleFeature = false;
 
+    private String m_samplingWeightColumn = null;
+
 
     private DataColumnSpecFilterConfiguration m_featureCols = createFeatureCols();
 
 
     @Override
-    public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec inSpec) {
+    public void loadSettingsInDialog(final NodeSettingsRO settings, final DataTableSpec[] inSpecs) {
         m_explanationSetSize = settings.getInt(CFG_EXPLANATION_SET_SIZE, DEF_EXPLANATION_SET_SIZE);
         m_useSeed = settings.getBoolean(CFG_USE_SEED, false);
         m_seed = settings.getLong(CFG_SEED, newSeed());
-        m_featureCols.loadConfigurationInDialog(settings, inSpec);
+        m_featureCols.loadConfigurationInDialog(settings, inSpecs[0]);
         m_treatAllColumnsAsSingleFeature = settings.getBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE, false);
+        m_samplingWeightColumn = settings.getString(CFG_SAMPLING_WEIGHT_COLUMN, null);
     }
 
     @Override
@@ -103,6 +111,7 @@ public class ShapLoopStartSettings implements ShapSettings {
         m_seed = settings.getLong(CFG_SEED);
         m_featureCols.loadConfigurationInModel(settings);
         m_treatAllColumnsAsSingleFeature = settings.getBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE);
+        m_samplingWeightColumn = settings.getString(CFG_SAMPLING_WEIGHT_COLUMN);
     }
 
     @Override
@@ -112,6 +121,7 @@ public class ShapLoopStartSettings implements ShapSettings {
         settings.addLong(CFG_SEED, m_seed);
         m_featureCols.saveConfiguration(settings);
         settings.addBoolean(CFG_TREAT_COLLECTIONS_AS_SINGLE_FEATURE, m_treatAllColumnsAsSingleFeature);
+        settings.addString(CFG_SAMPLING_WEIGHT_COLUMN, m_samplingWeightColumn);
     }
 
 
@@ -197,6 +207,20 @@ public class ShapLoopStartSettings implements ShapSettings {
      */
     void setTreatAllColumnsAsSingleFeature(final boolean treatAllColumnsAsSingleFeature) {
         m_treatAllColumnsAsSingleFeature = treatAllColumnsAsSingleFeature;
+    }
+
+    /**
+     * @return the weightColumn
+     */
+    public Optional<String> getWeightColumn() {
+        return Optional.ofNullable(m_samplingWeightColumn);
+    }
+
+    /**
+     * @param weightColumn the weightColumn to set
+     */
+    public void setWeightColumn(final String weightColumn) {
+        m_samplingWeightColumn = weightColumn;
     }
 
 }

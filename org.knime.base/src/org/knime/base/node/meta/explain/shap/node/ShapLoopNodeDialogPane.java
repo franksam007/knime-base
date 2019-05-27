@@ -65,12 +65,12 @@ class ShapLoopNodeDialogPane <S extends ShapSettings> extends NodeDialogPane {
 
     private final Supplier<S> m_settingsSupplier;
 
-    private final OptionsDialog<S> m_options;
+    private final ShapOptionsDialog<S> m_options;
 
     /**
      *
      */
-    public ShapLoopNodeDialogPane(final OptionsDialog<S> dialog, final Supplier<S> settingsSupplier) {
+    public ShapLoopNodeDialogPane(final ShapOptionsDialog<S> dialog, final Supplier<S> settingsSupplier) {
         m_options = dialog;
         m_settingsSupplier = settingsSupplier;
         addTab("Options", m_options.getPanel());
@@ -92,10 +92,9 @@ class ShapLoopNodeDialogPane <S extends ShapSettings> extends NodeDialogPane {
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
         throws NotConfigurableException {
-        final DataTableSpec inSpec = specs[0];
         final S cfg = m_settingsSupplier.get();
-        cfg.loadSettingsInDialog(settings, inSpec);
-        m_options.loadSettingsFrom(cfg, inSpec);
+        cfg.loadSettingsInDialog(settings, specs);
+        m_options.loadSettingsFrom(cfg, specs);
     }
 
 }

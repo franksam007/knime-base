@@ -61,6 +61,8 @@ import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings.PredictionColumnSelectionMode;
 import org.knime.base.node.meta.explain.util.MissingColumnException;
 import org.knime.base.node.meta.explain.util.TablePreparer;
+import org.knime.base.node.meta.explain.util.iter.DoubleIterable;
+import org.knime.base.node.meta.explain.util.iter.DoubleIterator;
 import org.knime.base.node.meta.explain.util.iter.IntIterator;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataRow;
@@ -90,6 +92,8 @@ final class ShapPredictionConsumer {
 
     private ExplanationToDataCellsConverter m_explanationConverter;
 
+    private DoubleIterable m_samplingWeights;
+
     private int m_samplingSetSize;
 
     void consumePredictions(final BufferedDataTable predictedTable, final ShapIteration shapIteration,
@@ -115,6 +119,10 @@ final class ShapPredictionConsumer {
             // and the loop start has not been executed, yet
             return null;
         }
+    }
+
+    void setSamplingWeights(final DoubleIterable samplingWeights) {
+        m_samplingWeights = samplingWeights;
     }
 
     BufferedDataTable getExplanationTable() {
@@ -162,19 +170,22 @@ final class ShapPredictionConsumer {
     }
 
     private RealMatrix aggregatePredictionsPerSample(final CloseableRowIterator iter, final int nSamples) {
+        CheckUtils.checkState(m_samplingWeights != null, "No sampling weights set.");
         final int numPredCols = m_predictionTablePreparer.getNumColumns();
         final double[][] aggregatedPredictions = new double[nSamples][numPredCols];
         int sampleIdx = -1;
         int i = 0;
+        final DoubleIterator weightIter = m_samplingWeights.iterator();
         while (iter.hasNext()) {
+            assert weightIter.hasNext() : "The number of weights does not match the size of the sampling table.";
             final DataRow row = iter.next();
+            final double weight = weightIter.next();
             if (i % m_samplingSetSize == 0) {
                 sampleIdx++;
             }
             for (int j = 0; j < numPredCols; j++) {
-                // TODO add optional weighting
                 aggregatedPredictions[sampleIdx][j] +=
-                    ((DoubleValue)row.getCell(j)).getDoubleValue() / m_samplingSetSize;
+                    ((DoubleValue)row.getCell(j)).getDoubleValue() * weight;
             }
             i++;
         }

@@ -68,7 +68,7 @@ import org.knime.core.node.util.filter.column.DataColumnSpecFilterPanel;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
+class EndOptionsDialog implements ShapOptionsDialog<ShapLoopEndSettings> {
 
     private final DataColumnSpecFilterPanel m_predictionColumns = new DataColumnSpecFilterPanel();
 
@@ -151,8 +151,8 @@ class EndOptionsDialog implements OptionsDialog<ShapLoopEndSettings> {
     }
 
     @Override
-    public void loadSettingsFrom(final ShapLoopEndSettings cfg, final DataTableSpec inSpec) {
-        m_predictionColumns.loadConfiguration(cfg.getPredictionCols(), inSpec);
+    public void loadSettingsFrom(final ShapLoopEndSettings cfg, final DataTableSpec[] inSpecs) {
+        m_predictionColumns.loadConfiguration(cfg.getPredictionCols(), inSpecs[0]);
         m_useElementNames.setSelected(cfg.isUseElementNames());
         final boolean isAutomatic = cfg.getPredictionColumnSelectionMode() == PredictionColumnSelectionMode.AUTOMATIC;
         m_automaticColumnSelection.setSelected(isAutomatic);

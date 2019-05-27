@@ -51,6 +51,7 @@ package org.knime.base.node.meta.explain.shap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import org.knime.base.node.meta.explain.feature.FeatureManager;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings;
@@ -59,8 +60,12 @@ import org.knime.base.node.meta.explain.util.DefaultRandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.MissingColumnException;
 import org.knime.base.node.meta.explain.util.RandomDataGeneratorFactory;
 import org.knime.base.node.meta.explain.util.TablePreparer;
+import org.knime.base.node.meta.explain.util.iter.DoubleIterable;
+import org.knime.base.node.meta.explain.util.iter.IterableUtils;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.DoubleValue;
+import org.knime.core.data.RowIteratorBuilder;
 import org.knime.core.data.RowKey;
 import org.knime.core.data.container.CloseableRowIterator;
 import org.knime.core.data.def.DefaultRow;
@@ -210,16 +215,50 @@ public class ShapExplainer {
         // plus one because the first iteration predicts the sampling table
         m_maxIterations = (int)roiTable.size() + 1;
         m_currentIteration = 0;
-        final BufferedDataTable featureTable =
-            m_featureTablePreparer.createTable(roiTable, exec.createSilentSubExecutionContext(0));
-        m_rowIterator = featureTable.iterator();
+        m_rowIterator = m_featureTablePreparer.createIterator(roiTable, exec.createSilentSubExecutionContext(0));
         final SubsetReplacer subsetReplacer = new SubsetReplacer(
-            m_featureTablePreparer.createTable(samplingTable, exec), m_featureManager.createRowHandler());
+            m_featureTablePreparer.createTable(samplingTable, exec.createSilentSubExecutionContext(0)),
+            m_featureManager.createRowHandler());
+        updateFeatureManager(samplingTable, exec);
         final int numFeatures = m_featureManager.getNumFeatures()
             .orElseThrow(() -> new IllegalStateException("The number of features must be known during execution."));
         final RandomDataGeneratorFactory rdgFactory = new DefaultRandomDataGeneratorFactory(m_settings.getSeed());
         m_sampler = new ShapSampler(subsetReplacer, new DefaultMaskFactory(numFeatures),
             m_settings.getExplanationSetSize(), numFeatures, rdgFactory);
+        m_predictionConsumer.setSamplingWeights(createSamplingWeights(samplingTable));
+    }
+
+    private DoubleIterable createSamplingWeights(final BufferedDataTable samplingTable)
+        throws InvalidSettingsException {
+        final Optional<String> weightColumn = m_settings.getWeightColumn();
+        if (!weightColumn.isPresent()) {
+            long size = samplingTable.size();
+            return IterableUtils.constantDoubleIterable(1.0 / size, size);
+        }
+        final RowIteratorBuilder<? extends CloseableRowIterator> iterBuilder = samplingTable.iteratorBuilder();
+        DataTableSpec tableSpec = samplingTable.getDataTableSpec();
+        final int idx = tableSpec.findColumnIndex(weightColumn.get());
+        CheckUtils.checkSetting(tableSpec.getColumnSpec(idx).getType().isCompatible(DoubleValue.class),
+            "The sampling weight column '%s' is not numeric.", weightColumn.get());
+        iterBuilder.filterColumns(idx);
+        final double[] samplingWeights = new double[(int)samplingTable.size()];
+        try (CloseableRowIterator iter = iterBuilder.build()) {
+            for (int i = 0; iter.hasNext(); i++) {
+                final DataRow row = iter.next();
+                // we ensured above that the weight column is numeric
+                final DoubleValue weight = (DoubleValue)row.getCell(idx);
+                samplingWeights[i] = weight.getDoubleValue();
+            }
+        }
+        return IterableUtils.arrayDoubleIterable(samplingWeights, false);
+    }
+
+    private void updateFeatureManager(final BufferedDataTable table, final ExecutionContext exec)
+        throws InvalidSettingsException, CanceledExecutionException, MissingColumnException {
+        try (final CloseableRowIterator iter =
+            m_featureTablePreparer.createIterator(table, exec.createSilentSubExecutionContext(0))) {
+            m_featureManager.updateWithRow(iter.next());
+        }
     }
 
     /**
@@ -231,11 +270,23 @@ public class ShapExplainer {
         m_featureTablePreparer.updateSpecs(roiSpec, settings.getFeatureCols());
     }
 
+    /**
+     * Performs configuration of the SHAP Loop End node.
+     *
+     * @param predSpec {@link DataTableSpec} of the table containing the predictions of the user's model
+     * @param settings
+     * @return the {@link DataTableSpec} of the Loop End's output table
+     */
     public DataTableSpec configureLoopEnd(final DataTableSpec predSpec, final ShapLoopEndSettings settings) {
         updateLoopEndSettings(predSpec, settings);
         return m_predictionConsumer.getExplanationSpec();
     }
 
+    /**
+     * @param predictedTable the table containing the predictions of the user's model
+     * @param exec {@link ExecutionContext} of the SHAP Loop End node
+     * @throws Exception
+     */
     public void consumePredictions(final BufferedDataTable predictedTable, final ExecutionContext exec)
         throws Exception {
         m_predictionConsumer.consumePredictions(predictedTable, m_currentShapIteration, exec);
@@ -249,10 +300,10 @@ public class ShapExplainer {
     }
 
     private void updateLoopEndSettings(final DataTableSpec predictionSpec, final ShapLoopEndSettings settings) {
-            // either we have no settings or the settings changed so we need to update
+        // either we have no settings or the settings changed so we need to update
         m_featureManager.setUseElementNames(settings.isUseElementNames());
-        m_predictionConsumer.updateSettings(predictionSpec, settings,
-            m_featureManager.getFeatureNames().orElse(null), m_featureTablePreparer.getTableSpec());
+        m_predictionConsumer.updateSettings(predictionSpec, settings, m_featureManager.getFeatureNames().orElse(null),
+            m_featureTablePreparer.getTableSpec());
     }
 
 }

@@ -52,6 +52,7 @@ import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.Optional;
 import java.util.Random;
 
 import javax.swing.BorderFactory;
@@ -64,16 +65,24 @@ import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.DoubleValue;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.util.ColumnSelectionPanel;
+import org.knime.core.node.util.DataValueColumnFilter;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterPanel;
 
 /**
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class StartOptionsDialog implements OptionsDialog<ShapLoopStartSettings> {
+final class StartOptionsDialog implements ShapOptionsDialog<ShapLoopStartSettings> {
 
     private final DataColumnSpecFilterPanel m_featureColumns = new DataColumnSpecFilterPanel();
+
+    @SuppressWarnings("unchecked")
+    private final ColumnSelectionPanel m_weightColumn =
+        new ColumnSelectionPanel(null, new DataValueColumnFilter(DoubleValue.class), true);
 
     private final JSpinner m_explanationSetSize =
         new JSpinner(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1000));
@@ -130,6 +139,7 @@ final class StartOptionsDialog implements OptionsDialog<ShapLoopStartSettings> {
         final JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Sampling Options"));
         addComponent(panel, gbc, "Explanation set size", m_explanationSetSize);
+        addComponent(panel, gbc, "Sampling weight", m_weightColumn);
         gbc.gridy++;
         gbc.gridwidth = 1;
         gbc.weighty = 0;
@@ -143,7 +153,6 @@ final class StartOptionsDialog implements OptionsDialog<ShapLoopStartSettings> {
         panel.add(m_newSeedBtn, gbc);
         return panel;
     }
-
 
     private static GridBagConstraints createGbc() {
         GridBagConstraints gbc = new GridBagConstraints();
@@ -189,6 +198,7 @@ final class StartOptionsDialog implements OptionsDialog<ShapLoopStartSettings> {
         cfg.setSeed(getSeedAsLong());
         cfg.setUseSeed(m_useSeed.isSelected());
         cfg.setTreatAllColumnsAsSingleFeature(m_treatCollectionsAsSingleFeature.isSelected());
+        cfg.setWeightColumn(m_weightColumn.getSelectedColumn());
     }
 
     private long getSeedAsLong() throws InvalidSettingsException {
@@ -201,14 +211,16 @@ final class StartOptionsDialog implements OptionsDialog<ShapLoopStartSettings> {
     }
 
     @Override
-    public void loadSettingsFrom(final ShapLoopStartSettings cfg, final DataTableSpec inSpec) {
-        m_featureColumns.loadConfiguration(cfg.getFeatureCols(), inSpec);
+    public void loadSettingsFrom(final ShapLoopStartSettings cfg, final DataTableSpec[] inSpecs)
+        throws NotConfigurableException {
+        m_featureColumns.loadConfiguration(cfg.getFeatureCols(), inSpecs[0]);
         m_explanationSetSize.setValue(cfg.getExplanationSetSize());
         m_seedBox.setText(cfg.getManualSeed() + "");
         m_useSeed.setSelected(cfg.isUseSeed());
         reactToUseSeedCheckBox();
         m_treatCollectionsAsSingleFeature.setSelected(cfg.isTreatAllColumnsAsSingleFeature());
+        final Optional<String> weightColumnName = cfg.getWeightColumn();
+        m_weightColumn.update(inSpecs[1], weightColumnName.orElse(null));
     }
-
 
 }
