@@ -49,12 +49,15 @@
 package org.knime.base.node.meta.explain.shap;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.knime.base.node.meta.explain.CountingDataContainer;
+import org.knime.base.node.meta.explain.DefaultExplanation.DefaultExplanationBuilder;
+import org.knime.base.node.meta.explain.Explanation;
 import org.knime.base.node.meta.explain.ExplanationToDataCellsConverter;
 import org.knime.base.node.meta.explain.ExplanationToMultiRowConverter;
 import org.knime.base.node.meta.explain.shap.node.ShapLoopEndSettings;
@@ -93,6 +96,8 @@ final class ShapPredictionConsumer {
     private ExplanationToDataCellsConverter m_explanationConverter;
 
     private DoubleIterable m_samplingWeights;
+
+    private double[] m_nullFx;
 
     private int m_samplingSetSize;
 
@@ -165,8 +170,22 @@ final class ShapPredictionConsumer {
             coeffsPerTarget.add(m_shapWLS.getWLSCoefficients(masks, aggregatedPredictions.getColumnVector(i), i,
                 currentFx[i], shapWeights));
         }
-        final ShapExplanation explanation = new ShapExplanation(shapIteration.getRoiKey(), coeffsPerTarget);
-        m_explanationConverter.convertAndWrite(explanation, m_loopEndContainer);
+        m_explanationConverter.convertAndWrite(createExplanation(shapIteration.getRoiKey(), coeffsPerTarget, currentFx),
+            m_loopEndContainer);
+    }
+
+    private Explanation createExplanation(final String roi, final List<double[]> coeffs, final double[] currentFx) {
+        final DefaultExplanationBuilder builder =
+            new DefaultExplanationBuilder(roi, currentFx.length, m_featureNames.size());
+        final Iterator<double[]> coeffIter = coeffs.iterator();
+        for (int target = 0; coeffIter.hasNext(); target++) {
+            builder.setActualPredictionAndDeviation(target, currentFx[target], m_nullFx[target]);
+            final double[] currentCoeffs = coeffIter.next();
+            for (int feature = 0; feature < currentCoeffs.length; feature++) {
+                builder.setExplanationValue(target, feature, currentCoeffs[feature]);
+            }
+        }
+        return builder.build();
     }
 
     private RealMatrix aggregatePredictionsPerSample(final CloseableRowIterator iter, final int nSamples) {
@@ -184,8 +203,7 @@ final class ShapPredictionConsumer {
                 sampleIdx++;
             }
             for (int j = 0; j < numPredCols; j++) {
-                aggregatedPredictions[sampleIdx][j] +=
-                    ((DoubleValue)row.getCell(j)).getDoubleValue() * weight;
+                aggregatedPredictions[sampleIdx][j] += ((DoubleValue)row.getCell(j)).getDoubleValue() * weight;
             }
             i++;
         }
@@ -254,24 +272,24 @@ final class ShapPredictionConsumer {
         m_samplingSetSize = getAsInt(predictionTable.size());
 
         long rowIdx = 1;
-        final double[] nullFx = new double[m_predictionTablePreparer.getNumColumns()];
+        m_nullFx = new double[m_predictionTablePreparer.getNumColumns()];
         try (final CloseableRowIterator iter = createPredictionIterator(predictionTable, exec)) {
             while (iter.hasNext()) {
                 exec.checkCanceled();
                 DataRow row = iter.next();
-                for (int i = 0; i < nullFx.length; i++) {
+                for (int i = 0; i < m_nullFx.length; i++) {
                     // the prediction table only contains columns that contain double values
-                    nullFx[i] += ((DoubleValue)row.getCell(i)).getDoubleValue();
+                    m_nullFx[i] += ((DoubleValue)row.getCell(i)).getDoubleValue();
                 }
                 exec.setProgress(rowIdx / size);
             }
         }
-        for (int i = 0; i < nullFx.length; i++) {
-            nullFx[i] /= size;
+        for (int i = 0; i < m_nullFx.length; i++) {
+            m_nullFx[i] /= size;
         }
 
         // TODO allow different link functions e.g. logit
-        m_shapWLS = new ShapWLS(MatrixUtils.createRealVector(nullFx), d -> d);
+        m_shapWLS = new ShapWLS(MatrixUtils.createRealVector(m_nullFx), d -> d);
     }
 
     private CloseableRowIterator createPredictionIterator(final BufferedDataTable samplingTable,

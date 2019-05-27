@@ -98,8 +98,10 @@ public final class ExplanationToMultiRowConverter implements ExplanationToDataCe
             final DataCell[] cells = new DataCell[numFeatures + 2];
             cells[0] = new StringCell(explanation.getRoiKey());
             cells[1] = m_targetNames[i];
+            cells[2] = new DoubleCell(explanation.getActualPrediction(i));
+            cells[3] = new DoubleCell(explanation.getDeviationFromMeanPrediction(i));
             for (int j = 0; j < numFeatures; j++) {
-                cells[j + 2] = new DoubleCell(explanation.getExplanationValue(i, j));
+                cells[j + 4] = new DoubleCell(explanation.getExplanationValue(i, j));
             }
             consumer.accept(cells);
         }
@@ -113,6 +115,9 @@ public final class ExplanationToMultiRowConverter implements ExplanationToDataCe
         final DataTableSpecCreator specCreator = new DataTableSpecCreator();
         specCreator.addColumns(new DataColumnSpecCreator("RowId", StringCell.TYPE).createSpec());
         specCreator.addColumns(new DataColumnSpecCreator("Target", StringCell.TYPE).createSpec());
+        specCreator.addColumns(new DataColumnSpecCreator("Actual prediction", DoubleCell.TYPE).createSpec());
+        specCreator
+            .addColumns(new DataColumnSpecCreator("Deviation from mean prediction", DoubleCell.TYPE).createSpec());
         for (final String featureName : featureNames) {
             specCreator.addColumns(new DataColumnSpecCreator(featureName, DoubleCell.TYPE).createSpec());
         }

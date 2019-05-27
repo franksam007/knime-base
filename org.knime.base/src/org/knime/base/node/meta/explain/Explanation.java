@@ -83,4 +83,16 @@ public interface Explanation {
      */
     double getExplanationValue(final int target, final int feature);
 
+    /**
+     * @param target
+     * @return the actual prediction of the current <b>roi</b> for <b>target</b>
+     */
+    double getActualPrediction(final int target);
+
+    /**
+     * @param target
+     * @return the difference between the roi prediction and the mean prediction
+     */
+    double getDeviationFromMeanPrediction(final int target);
+
 }
