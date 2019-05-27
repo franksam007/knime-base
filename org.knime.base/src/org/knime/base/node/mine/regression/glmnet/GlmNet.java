@@ -110,7 +110,14 @@ final class GlmNet {
     }
 
     private LinearModel createSnapshot() {
-        return new LinearModel(m_intercept, m_coefficients);
+        final float[] denormalizedCoeffs = new float[m_coefficients.length];
+        float interceptOffset = 0.0f;
+        for (int i = 0; i < denormalizedCoeffs.length; i++) {
+            final float beta = m_coefficients[i];
+            denormalizedCoeffs[i] = beta / m_data.getStdv(i);
+            interceptOffset += beta * m_data.getWeightedMean(i);
+        }
+        return new LinearModel(m_intercept - interceptOffset, denormalizedCoeffs);
     }
 
     private void performFeatureIteration(final int featureIdx) {
@@ -125,10 +132,10 @@ final class GlmNet {
 
     private float calculateUpdate(final int featureIdx) {
         // TODO go through formulas to ensure that this is the correct one
-        final float grad = m_updater.calculateGradient(m_data.getIterator(featureIdx))
-            +  m_coefficients[featureIdx];
-        final float thresholded = softThresholding(grad, m_lambda * m_alpha);
         final float weightedSquaredMean = m_data.getWeightedSquaredMean(featureIdx);
+        final float grad = m_updater.calculateGradient(m_data.getIterator(featureIdx))
+            +  m_coefficients[featureIdx] * weightedSquaredMean;
+        final float thresholded = softThresholding(grad, m_lambda * m_alpha);
         return thresholded / (weightedSquaredMean + m_lambda * (1 - m_alpha));
     }
 
@@ -154,17 +161,13 @@ final class GlmNet {
         m_data.updateResidual(delta);
     }
 
-    private void updateResidualsWithIntercept() {
-
-    }
-
     /**
      * @return
      */
     private float calculateMeanResponse() {
         float meanResponse = 0;
         for (int i = 0; i < m_coefficients.length; i++) {
-            meanResponse += m_data.getWeightedMean(i) * m_coefficients[i] / m_data.getWeightedStdv(i);
+            meanResponse += m_data.getWeightedMean(i) * m_coefficients[i] / m_data.getStdv(i);
         }
         return meanResponse;
     }

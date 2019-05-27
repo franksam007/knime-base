@@ -70,7 +70,6 @@ enum NaiveUpdater implements Updater {
         final float scaledMean = iter.getFeatureMean();
         while (iter.next()) {
             final float oldResidual = iter.getResidual();
-            // TODO subtract scaled mean!
             final float responseDiff = (iter.getFeature() - scaledMean) * betaDiff;
             final float newResidual = oldResidual - responseDiff;
             iter.setResidual(newResidual);
@@ -80,9 +79,12 @@ enum NaiveUpdater implements Updater {
     private static float calculateResidualProduct(final DataIterator iter) {
         float sum = 0.0F;
         while (iter.next()) {
-            sum += iter.getWeight() * iter.getFeature() * iter.getResidual();
+            float weight = iter.getWeight();
+            float scaledValue = iter.getFeature();
+            float residual = iter.getResidual();
+            sum += weight * scaledValue * residual;
         }
-        sum -= iter.getFeatureMean() * iter.getTotalWeightedResidual();
+//        sum -= iter.getFeatureMean() * iter.getTotalWeightedResidual();
         // we require that all weights sum up to one therefore sum must not be normalized here
         return sum;
     }

@@ -69,15 +69,18 @@ public final class DefaultData implements Data {
 
     private final int m_numFeatures;
 
-    private final float[] m_weightedStdv;
+    private final float[] m_stdv;
 
-    private final float[] m_weightedScaledMeans;
+    private final float[] m_scaledMeans;
 
     private final float[] m_weightedSquaredMeans;
+
+    private final float[] m_weightedMeanDiffs;
 
     private float m_weightedMeanTarget;
 
     private float m_totalWeightedResidual;
+
 
     private final FeatureTargetProducts m_innerFeatureTargetProducts;
 
@@ -92,9 +95,10 @@ public final class DefaultData implements Data {
         m_target = target;
         m_residuals = target.clone();
         m_numFeatures = numFeatures;
-        m_weightedStdv = new float[numFeatures];
-        m_weightedScaledMeans = new float[numFeatures];
+        m_stdv = new float[numFeatures];
+        m_scaledMeans = new float[numFeatures];
         m_weightedSquaredMeans = new float[numFeatures];
+        m_weightedMeanDiffs = new float[numFeatures];
         m_weights = weights;
         calculateWeightedFeatureStatistics();
         calculateWeightedMeanTarget();
@@ -113,14 +117,22 @@ public final class DefaultData implements Data {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public float getWeightedMeanDiff(final int featureIdx) {
+        return m_weightedMeanDiffs[featureIdx];
+    }
+
     private void scaleFeatures() {
         for (int i = 0; i < m_features.length; i++) {
-            m_features[i].scale(1.0f / m_weightedStdv[i]);
+            m_features[i].scale(1.0f / m_stdv[i]);
         }
     }
 
     private void calculateWeightedFeatureStatistics() {
-        Arrays.fill(m_weightedStdv, 0);
+        Arrays.fill(m_stdv, 0);
         for (int f = 0; f < m_numFeatures; f++) {
             calculateStats(f);
         }
@@ -146,9 +158,10 @@ public final class DefaultData implements Data {
         final float variance = squaredMean - mean * mean;
         final float std = (float)Math.sqrt(variance);
         assert std > 0 : "Zero standard deviation detected. This can only happen for constant columns.";
-        m_weightedScaledMeans[f] = mean / std;
-        m_weightedSquaredMeans[f] = (wsm - 2 * mean * wm + mean) / (std * std);
-        m_weightedStdv[f] = std;
+        final float scaledMean = mean / std;
+        m_scaledMeans[f] = mean / std;
+        m_weightedSquaredMeans[f] = wsm / variance - 2 * scaledMean * wm / std + scaledMean * scaledMean;
+        m_stdv[f] = std;
     }
 
     private void calculateWeightedMeanTarget() {
@@ -187,8 +200,8 @@ public final class DefaultData implements Data {
      * {@inheritDoc}
      */
     @Override
-    public float getWeightedStdv(final int featureIdx) {
-        return m_weightedStdv[featureIdx];
+    public float getStdv(final int featureIdx) {
+        return m_stdv[featureIdx];
     }
 
     /**
@@ -204,7 +217,7 @@ public final class DefaultData implements Data {
      */
     @Override
     public DataIterator getIterator(final int featureIdx) {
-        return new DefaultDataIterator(m_features[featureIdx].getIterator(), m_weightedScaledMeans[featureIdx]);
+        return new DefaultDataIterator(m_features[featureIdx].getIterator(), m_scaledMeans[featureIdx]);
     }
 
     /**
@@ -212,7 +225,7 @@ public final class DefaultData implements Data {
      */
     @Override
     public float getWeightedMean(final int featureIdx) {
-        return m_weightedScaledMeans[featureIdx];
+        return m_scaledMeans[featureIdx];
     }
 
     /**
@@ -278,9 +291,10 @@ public final class DefaultData implements Data {
         @Override
         public void setResidual(final float value) {
             final float oldResidual = getResidual();
-            final float diff = oldResidual - value;
+            final float diff = value - oldResidual;
             // TODO verify correctness
-            m_totalWeightedResidual += getWeight() * diff;
+            final float weight = getWeight();
+            m_totalWeightedResidual += weight * diff;
             m_residuals[m_featureIterator.getRowIdx()] = value;
         }
 

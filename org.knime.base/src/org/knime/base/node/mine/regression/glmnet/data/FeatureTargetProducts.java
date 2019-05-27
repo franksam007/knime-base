@@ -77,17 +77,19 @@ final class FeatureTargetProducts {
         if (m_alreadyCalculated[featureIdx]) {
             return m_products[featureIdx];
         }
-        final float product = calculateWeightedInnerProduct(m_data.getIterator(featureIdx));
+        final float product =
+            calculateWeightedInnerProduct(m_data.getIterator(featureIdx));
         m_products[featureIdx] = product;
         m_alreadyCalculated[featureIdx] = true;
         return product;
     }
 
-    private static float calculateWeightedInnerProduct(final DataIterator iter) {
+    private float calculateWeightedInnerProduct(final DataIterator iter) {
         float prod = 0;
         while (iter.next()) {
             prod += iter.getWeight() * iter.getFeature() * iter.getTarget();
         }
+        prod -= m_data.getWeightedMeanTarget() * iter.getFeatureMean();
         return prod;
     }
 

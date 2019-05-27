@@ -44,36 +44,52 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   26.05.2019 (Adrian): created
+ *   May 27, 2019 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.base.node.mine.regression.glmnet.data;
 
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+
 /**
  *
- * @author Adrian
+ * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public interface Data {
+public class DefaultDataTest {
 
-    int getNumRows();
+    @Test
+    public void testStandardization() throws Exception {
+        final float[] values = new float[10];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = (float)Math.random();
+        }
+        Feature feature = new DenseFeature(values.clone());
+        ConstantWeightContainer weights = new ConstantWeightContainer(10);
+        DefaultData data = new DefaultData(new Feature[] {feature}, values, weights);
 
-    int getNumFeatures();
+        final DataIterator iter = data.getIterator(0);
 
-    float getTotalWeight();
+        float sum = 0;
+        float squaredSum = 0;
 
-    float getStdv(int featureIdx);
+        while (iter.next()) {
+            float val = iter.getFeature();
+            sum += val;
+            squaredSum += val * val;
+        }
 
-    float getWeightedSquaredMean(int featureIdx);
+        float scaledMean = iter.getFeatureMean();
 
-    DataIterator getIterator(int featureIdx);
+        float sumOfAllValues = sum - values.length * iter.getFeatureMean();
+        assertEquals(0.0, sumOfAllValues, 1e-5);
 
-    float getWeightedMean(int featureIdx);
+        int n = values.length;
 
-    float getWeightedMeanTarget();
+        float normalizedSquaredSum = (squaredSum / n) - (2 * scaledMean * sum / n) + scaledMean * scaledMean;
 
-    float getWeightedInnerFeatureTargetProduct(final int featureIdx);
+        assertEquals(1.0, normalizedSquaredSum, 1e-5);
 
-    void updateResidual(final float interceptDelta);
-
-    float getWeightedMeanDiff(final int featureIdx);
+    }
 
 }
