@@ -131,20 +131,23 @@ public final class DefaultData implements Data {
         float wm = 0;
         float wsm = 0;
         float m = 0;
+        float sm = 0;
         final FeatureIterator iter = feature.getIterator();
         while (iter.next()) {
             final float value = iter.getValue();
             final float weight = m_weights.get(iter.getRowIdx());
             wm += weight * value;
             wsm += weight * value * value;
+            sm += value * value;
             m += value;
         }
-        final float variance = wsm - wm * wm;
+        final float mean = m / getNumRows();
+        final float squaredMean = sm / getNumRows();
+        final float variance = squaredMean - mean * mean;
         final float std = (float)Math.sqrt(variance);
-        final float unweightedMean = m / getNumRows();
         assert std > 0 : "Zero standard deviation detected. This can only happen for constant columns.";
-        m_weightedScaledMeans[f] = wm / std;
-        m_weightedSquaredMeans[f] = (wsm - 2 * unweightedMean * wm + unweightedMean) / (std * std);
+        m_weightedScaledMeans[f] = mean / std;
+        m_weightedSquaredMeans[f] = (wsm - 2 * mean * wm + mean) / (std * std);
         m_weightedStdv[f] = std;
     }
 
