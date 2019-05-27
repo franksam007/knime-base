@@ -86,6 +86,7 @@ final class RoundRobinFeatureCycleStrategy implements FeatureCycle {
     public int next() {
         if (m_featureIdx == m_numFeatures - 1 && m_changeInLastCycle) {
             m_featureIdx = -1;
+            m_changeInLastCycle = false;
         }
         m_featureIdx++;
         return m_featureIdx;

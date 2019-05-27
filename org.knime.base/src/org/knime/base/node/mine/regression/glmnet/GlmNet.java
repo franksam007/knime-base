@@ -101,11 +101,16 @@ final class GlmNet {
     public LinearModel fit(final float lambda) {
         CheckUtils.checkArgument(lambda >= 0, "Lambda must be a non-negative value but was %s.", lambda);
         m_lambda = lambda;
+        int round = 0;
         final FeatureCycle featureCycle = m_featureCycleFactory.create();
         for (int i = 0; i < m_maxIterations && featureCycle.hasNext(); i++) {
             final int featureIdx = featureCycle.next();
-            performFeatureIteration(featureIdx);
+            if (performFeatureIteration(featureIdx)) {
+                featureCycle.betaChanged();
+            }
+            round++;
         }
+        System.out.println(round);
         return createSnapshot();
     }
 
@@ -120,14 +125,16 @@ final class GlmNet {
         return new LinearModel(m_intercept - interceptOffset, denormalizedCoeffs);
     }
 
-    private void performFeatureIteration(final int featureIdx) {
+    private boolean performFeatureIteration(final int featureIdx) {
         final float oldBeta = m_coefficients[featureIdx];
         final float newBeta = calculateUpdate(featureIdx);
         final float betaDiff = newBeta - oldBeta;
         if (abs(betaDiff) > m_epsilon) {
             m_coefficients[featureIdx] = newBeta;
             m_updater.betaChanged(m_data.getIterator(featureIdx), betaDiff);
+            return true;
         }
+        return false;
     }
 
     private float calculateUpdate(final int featureIdx) {
