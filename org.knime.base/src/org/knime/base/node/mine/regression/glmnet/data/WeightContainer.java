@@ -52,7 +52,7 @@ package org.knime.base.node.mine.regression.glmnet.data;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-interface WeightContainer extends FloatContainer {
+interface WeightContainer extends RandomAccessible {
 
     double getTotal();
 }

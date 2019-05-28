@@ -81,4 +81,12 @@ class ConstantWeightContainer implements WeightContainer {
         return 1.0F;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return m_numRows;
+    }
+
 }

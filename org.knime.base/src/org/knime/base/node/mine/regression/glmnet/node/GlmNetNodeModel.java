@@ -197,7 +197,8 @@ final class GlmNetNodeModel extends NodeModel {
         return new BufferedDataTable[]{write(path, exec.createDataContainer(createOutspec()))};
     }
 
-    private static BufferedDataTable write(final RegularizationPath<LinearModel> path, final BufferedDataContainer container) {
+    private static BufferedDataTable write(final RegularizationPath<LinearModel> path,
+        final BufferedDataContainer container) {
         for (int i = 0; i < path.length(); i++) {
             container.addRowToTable(toRow(path.getLambda(i), path.getModel(i), i));
         }

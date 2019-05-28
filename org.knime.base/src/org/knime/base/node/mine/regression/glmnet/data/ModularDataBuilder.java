@@ -131,6 +131,10 @@ public final class ModularDataBuilder {
         }
     }
 
+    /**
+     * Builds the data from the table provided in the constructor.
+     * @return the {@link Data} object
+     */
     public Data build() {
         feedBuilders();
         return new DefaultData(getFeatures(), getTarget(), getWeightContainer());
@@ -173,7 +177,10 @@ public final class ModularDataBuilder {
         for (int i = 0; i < weightArray.length; i++) {
             totalWeight += weightArray[i];
         }
+        CheckUtils.checkArgument(totalWeight > 0, "Weights must be larger than 0");
         for (int i = 0; i < weightArray.length; i++) {
+            // we also check above if this is satisfied and throw an exception if not
+            assert totalWeight > 0;
             weightArray[i] /= totalWeight;
         }
         return weightArray;

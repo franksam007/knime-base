@@ -61,7 +61,7 @@ final class VariableWeightContainer implements WeightContainer {
     /**
      *
      */
-    public VariableWeightContainer(final double[] weights) {
+    VariableWeightContainer(final double[] weights) {
         m_weights = weights.clone();
         m_total = calculateTotal(m_weights);
     }
@@ -88,6 +88,14 @@ final class VariableWeightContainer implements WeightContainer {
     @Override
     public double getTotal() {
         return m_total;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return m_weights.length;
     }
 
 }

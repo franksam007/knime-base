@@ -57,7 +57,7 @@ import org.knime.core.node.util.CheckUtils;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-public final class DefaultData implements Data {
+final class DefaultData implements Data {
 
     private final Feature[] m_features;
 

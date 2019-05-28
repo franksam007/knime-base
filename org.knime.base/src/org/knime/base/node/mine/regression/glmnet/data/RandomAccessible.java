@@ -54,5 +54,14 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 public interface RandomAccessible {
 
-    float get(int idx);
+    /**
+     * @param idx
+     * @return the value at position <b>idx</b>
+     */
+    double get(int idx);
+
+    /**
+     * @return the number of values stored in this RandomAccessible
+     */
+    int size();
 }

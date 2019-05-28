@@ -54,8 +54,12 @@ package org.knime.base.node.mine.regression.glmnet.data;
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
+@FunctionalInterface
 public interface Variable {
 
+    /**
+     * @param scale the value by which to multiply all values of this variable
+     */
     void scale(final double scale);
 
 }
