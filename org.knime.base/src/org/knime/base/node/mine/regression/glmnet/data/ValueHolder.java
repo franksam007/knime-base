@@ -42,15 +42,15 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
- * 
+ *
  * History
  *   26.05.2019 (Adrian): created
  */
 package org.knime.base.node.mine.regression.glmnet.data;
 
 interface ValueHolder {
-    float get(final int idx);
-    void scale(final float scale);
+    double get(final int idx);
+    void scale(final double scale);
 
     int size();
 }

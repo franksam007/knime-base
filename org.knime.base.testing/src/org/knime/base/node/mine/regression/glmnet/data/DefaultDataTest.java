@@ -60,9 +60,9 @@ public class DefaultDataTest {
 
     @Test
     public void testStandardization() throws Exception {
-        final float[] values = new float[10];
+        final double[] values = new double[10];
         for (int i = 0; i < values.length; i++) {
-            values[i] = (float)Math.random();
+            values[i] = Math.random();
         }
         Feature feature = new DenseFeature(values.clone());
         ConstantWeightContainer weights = new ConstantWeightContainer(10);
@@ -70,23 +70,23 @@ public class DefaultDataTest {
 
         final DataIterator iter = data.getIterator(0);
 
-        float sum = 0;
-        float squaredSum = 0;
+        double sum = 0;
+        double squaredSum = 0;
 
         while (iter.next()) {
-            float val = iter.getFeature();
+            double val = iter.getFeature();
             sum += val;
             squaredSum += val * val;
         }
 
-        float scaledMean = iter.getFeatureMean();
+        double scaledMean = iter.getFeatureMean();
 
-        float sumOfAllValues = sum - values.length * iter.getFeatureMean();
+        double sumOfAllValues = sum - values.length * iter.getFeatureMean();
         assertEquals(0.0, sumOfAllValues, 1e-5);
 
         int n = values.length;
 
-        float normalizedSquaredSum = (squaredSum / n) - (2 * scaledMean * sum / n) + scaledMean * scaledMean;
+        double normalizedSquaredSum = (squaredSum / n) - (2 * scaledMean * sum / n) + scaledMean * scaledMean;
 
         assertEquals(1.0, normalizedSquaredSum, 1e-5);
 

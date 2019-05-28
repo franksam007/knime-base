@@ -73,10 +73,10 @@ public final class LambdaSequences {
      * @param data the training data
      * @return a log scale {@link LambdaSequence}
      */
-    public static LambdaSequence epsilonLogScale(final float epsilon, final int steps, final float alpha,
+    public static LambdaSequence epsilonLogScale(final double epsilon, final int steps, final double alpha,
         final Data data) {
-        final float lambdaMax = computeLambdaMax(alpha, data);
-        final float lambdaMin = epsilon * lambdaMax;
+        final double lambdaMax = computeLambdaMax(alpha, data);
+        final double lambdaMin = epsilon * lambdaMax;
         return logScaleSequence(lambdaMax, lambdaMin, steps);
     }
 
@@ -87,44 +87,44 @@ public final class LambdaSequences {
      * @param data the training data
      * @return a log scale {@link LambdaSequence}
      */
-    public static LambdaSequence lambdaMinLogScale(final float lambdaMin, final int steps, final float alpha,
+    public static LambdaSequence lambdaMinLogScale(final double lambdaMin, final int steps, final double alpha,
         final Data data) {
-        final float lambdaMax = computeLambdaMax(alpha, data);
+        final double lambdaMax = computeLambdaMax(alpha, data);
         return logScaleSequence(lambdaMax, lambdaMin, steps);
     }
 
-    private static LambdaSequence logScaleSequence(final float lambdaMax, final float lambdaMin, final int steps) {
-        final float[] lambdas = createDecreasingSequence((float)Math.log(lambdaMax), (float)Math.log(lambdaMin), steps);
+    private static LambdaSequence logScaleSequence(final double lambdaMax, final double lambdaMin, final int steps) {
+        final double[] lambdas = createDecreasingSequence(Math.log(lambdaMax), Math.log(lambdaMin), steps);
         inplaceExp(lambdas);
         // set lambdaMin to the exact values to correct rounding errors
         lambdas[lambdas.length - 1] = lambdaMin;
         return new ArrayLambdaSequence(lambdas);
     }
 
-    private static void inplaceExp(final float[] array) {
+    private static void inplaceExp(final double[] array) {
         for (int i = 0; i < array.length; i++) {
-            array[i] = (float)Math.exp(array[i]);
+            array[i] = Math.exp(array[i]);
         }
     }
 
-    private static float[] createDecreasingSequence(final float lambdaMax, final float lambdaMin, final int steps) {
-        final float stepSize = (lambdaMax - lambdaMin) / steps;
-        final float[] lambdas = new float[steps];
+    private static double[] createDecreasingSequence(final double lambdaMax, final double lambdaMin, final int steps) {
+        final double stepSize = (lambdaMax - lambdaMin) / steps;
+        final double[] lambdas = new double[steps];
         for (int i = 0; i < steps; i++) {
             lambdas[i] = lambdaMax - i * stepSize;
         }
         return lambdas;
     }
 
-    private static float computeLambdaMax(final float alpha, final Data data) {
-        final float maxInnerProduct = findMaxInnerProduct(data);
+    private static double computeLambdaMax(final double alpha, final Data data) {
+        final double maxInnerProduct = findMaxInnerProduct(data);
         return maxInnerProduct / (alpha * data.getTotalWeight());
     }
 
-    private static float findMaxInnerProduct(final Data data) {
-        float max = Float.NEGATIVE_INFINITY;
+    private static double findMaxInnerProduct(final Data data) {
+        double max = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < data.getNumFeatures(); i++) {
-            final float innerProduct = data.getWeightedInnerFeatureTargetProduct(i);
+            final double innerProduct = data.getWeightedInnerFeatureTargetProduct(i);
             if (innerProduct > max) {
                 max = innerProduct;
             }

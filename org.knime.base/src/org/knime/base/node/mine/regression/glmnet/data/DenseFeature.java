@@ -54,12 +54,12 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 class DenseFeature implements Feature {
 
-    private final float[] m_values;
+    private final double[] m_values;
 
     /**
      *
      */
-    public DenseFeature(final float[] values) {
+    public DenseFeature(final double[] values) {
         m_values = values;
     }
 
@@ -93,7 +93,7 @@ class DenseFeature implements Feature {
          * {@inheritDoc}
          */
         @Override
-        public float getValue() {
+        public double getValue() {
             return m_values[m_idx];
         }
 
@@ -103,7 +103,7 @@ class DenseFeature implements Feature {
      * {@inheritDoc}
      */
     @Override
-    public void scale(final float scale) {
+    public void scale(final double scale) {
         for (int i = 0; i < m_values.length; i++) {
             m_values[i] *= scale;
         }

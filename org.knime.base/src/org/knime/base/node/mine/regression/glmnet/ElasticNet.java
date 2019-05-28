@@ -73,13 +73,13 @@ public final class ElasticNet {
     /**
      * Used to check if a feature is active or not (might be extracted into separate class in the future)
      */
-    private final float m_epsilon;
+    private final double m_epsilon;
 
     /**
      *
      */
     public ElasticNet(final GlmNet glmnet, final LambdaSequence lambdas, final int maxActiveFeatures,
-        final float epsilon) {
+        final double epsilon) {
         m_glmnet = glmnet;
         m_lambdas = lambdas;
         m_models = new ArrayList<>(m_lambdas.length());
@@ -89,7 +89,7 @@ public final class ElasticNet {
 
     public void fit() {
         for (int i = 0; i < m_lambdas.length(); i++) {
-            final float lambda = m_lambdas.get(i);
+            final double lambda = m_lambdas.get(i);
             final LinearModel model = m_glmnet.fit(lambda);
             m_models.add(model);
             if (reachedMaxActiveFeatures(model)) {
@@ -101,7 +101,7 @@ public final class ElasticNet {
     private boolean reachedMaxActiveFeatures(final LinearModel model) {
         final Set<Integer> activeSet = new HashSet<>();
         for (int i = 0; i < model.getNumCoefficients(); i++) {
-            final float coeff = model.getCoefficient(i);
+            final double coeff = model.getCoefficient(i);
             if (coeff > m_epsilon || coeff < -m_epsilon) {
                 activeSet.add(i);
             }

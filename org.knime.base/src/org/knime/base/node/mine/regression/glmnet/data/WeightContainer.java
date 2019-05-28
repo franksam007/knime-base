@@ -54,5 +54,5 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 interface WeightContainer extends FloatContainer {
 
-    float getTotal();
+    double getTotal();
 }

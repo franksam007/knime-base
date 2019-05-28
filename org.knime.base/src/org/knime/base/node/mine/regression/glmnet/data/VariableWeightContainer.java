@@ -54,21 +54,21 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 final class VariableWeightContainer implements WeightContainer {
 
-    private final float[] m_weights;
+    private final double[] m_weights;
 
-    private final float m_total;
+    private final double m_total;
 
     /**
      *
      */
-    public VariableWeightContainer(final float[] weights) {
+    public VariableWeightContainer(final double[] weights) {
         m_weights = weights.clone();
         m_total = calculateTotal(m_weights);
     }
 
-    private static float calculateTotal(final float[] weights) {
-        float total = 0f;
-        for (float weight : weights) {
+    private static double calculateTotal(final double[] weights) {
+        double total = 0f;
+        for (double weight : weights) {
             total += weight;
         }
         return total;
@@ -78,7 +78,7 @@ final class VariableWeightContainer implements WeightContainer {
      * {@inheritDoc}
      */
     @Override
-    public float get(final int idx) {
+    public double get(final int idx) {
         return m_weights[idx];
     }
 
@@ -86,7 +86,7 @@ final class VariableWeightContainer implements WeightContainer {
      * {@inheritDoc}
      */
     @Override
-    public float getTotal() {
+    public double getTotal() {
         return m_total;
     }
 

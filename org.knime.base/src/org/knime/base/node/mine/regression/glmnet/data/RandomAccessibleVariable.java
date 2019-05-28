@@ -75,7 +75,7 @@ final class RandomAccessibleVariable implements RandomAccessible, Variable {
      * {@inheritDoc}
      */
     @Override
-    public void scale(final float scale) {
+    public void scale(final double scale) {
         for (int i = 0; i < m_values.length; i++) {
             m_values[i] *= scale;
         }

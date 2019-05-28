@@ -59,17 +59,17 @@ import org.knime.core.node.util.CheckUtils;
  */
 final class GlmNet {
 
-    private final float[] m_coefficients;
+    private final double[] m_coefficients;
 
-    private float m_intercept = 0.0f;
+    private double m_intercept = 0.0f;
 
     private final Data m_data;
 
-    private final float m_alpha;
+    private final double m_alpha;
 
-    private float m_lambda;
+    private double m_lambda;
 
-    private final float m_epsilon;
+    private final double m_epsilon;
 
     private final FeatureCycleFactory m_featureCycleFactory;
 
@@ -80,7 +80,7 @@ final class GlmNet {
     /**
      *
      */
-    public GlmNet(final Data data, final Updater updater, final float alpha, final float epsilon,
+    public GlmNet(final Data data, final Updater updater, final double alpha, final double epsilon,
         final FeatureCycleFactory featureCycleFactory, final int maxIterations) {
         CheckUtils.checkNotNull(data);
         CheckUtils.checkNotNull(featureCycleFactory);
@@ -88,7 +88,7 @@ final class GlmNet {
         CheckUtils.checkArgument(alpha >= 0 && alpha <= 1, "Alpha must be in the interval [0, 1].");
         CheckUtils.checkNotNull(updater);
         m_data = data;
-        m_coefficients = new float[data.getNumFeatures()];
+        m_coefficients = new double[data.getNumFeatures()];
         m_alpha = alpha;
         m_epsilon = epsilon;
         m_maxIterations = maxIterations;
@@ -98,7 +98,7 @@ final class GlmNet {
     }
 
 
-    public LinearModel fit(final float lambda) {
+    public LinearModel fit(final double lambda) {
         CheckUtils.checkArgument(lambda >= 0, "Lambda must be a non-negative value but was %s.", lambda);
         m_lambda = lambda;
         int round = 0;
@@ -115,10 +115,10 @@ final class GlmNet {
     }
 
     private LinearModel createSnapshot() {
-        final float[] denormalizedCoeffs = new float[m_coefficients.length];
-        float interceptOffset = 0.0f;
+        final double[] denormalizedCoeffs = new double[m_coefficients.length];
+        double interceptOffset = 0.0f;
         for (int i = 0; i < denormalizedCoeffs.length; i++) {
-            final float beta = m_coefficients[i];
+            final double beta = m_coefficients[i];
             denormalizedCoeffs[i] = beta / m_data.getStdv(i);
             interceptOffset += beta * m_data.getWeightedMean(i);
         }
@@ -126,9 +126,9 @@ final class GlmNet {
     }
 
     private boolean performFeatureIteration(final int featureIdx) {
-        final float oldBeta = m_coefficients[featureIdx];
-        final float newBeta = calculateUpdate(featureIdx);
-        final float betaDiff = newBeta - oldBeta;
+        final double oldBeta = m_coefficients[featureIdx];
+        final double newBeta = calculateUpdate(featureIdx);
+        final double betaDiff = newBeta - oldBeta;
         if (abs(betaDiff) > m_epsilon) {
             m_coefficients[featureIdx] = newBeta;
             m_updater.betaChanged(m_data.getIterator(featureIdx), betaDiff);
@@ -137,18 +137,18 @@ final class GlmNet {
         return false;
     }
 
-    private float calculateUpdate(final int featureIdx) {
+    private double calculateUpdate(final int featureIdx) {
         // TODO go through formulas to ensure that this is the correct one
-        final float weightedSquaredMean = m_data.getWeightedSquaredMean(featureIdx);
-        final float grad = m_updater.calculateGradient(m_data.getIterator(featureIdx))
+        final double weightedSquaredMean = m_data.getWeightedSquaredMean(featureIdx);
+        final double grad = m_updater.calculateGradient(m_data.getIterator(featureIdx))
             +  m_coefficients[featureIdx] * weightedSquaredMean;
-        final float thresholded = softThresholding(grad, m_lambda * m_alpha);
+        final double thresholded = softThresholding(grad, m_lambda * m_alpha);
         return thresholded / (weightedSquaredMean + m_lambda * (1 - m_alpha));
     }
 
-    private static float softThresholding(final float z, final float gamma) {
+    private static double softThresholding(final double z, final double gamma) {
         assert gamma >= 0;
-        final float absZ = abs(z);
+        final double absZ = abs(z);
         if (z > 0 && gamma < absZ) {
             return z - gamma;
         } else if (z < 0 && gamma < absZ) {
@@ -159,11 +159,11 @@ final class GlmNet {
     }
 
     private void calculateIntercept() {
-        float meanTarget = m_data.getWeightedMeanTarget();
+        double meanTarget = m_data.getWeightedMeanTarget();
         // TODO figure out where this notion of mean response comes from
-//        float meanResponse = calculateMeanResponse();
+//        double meanResponse = calculateMeanResponse();
         // for now we will use the mean target as eluded to in the paper
-        final float delta = meanTarget - m_intercept;
+        final double delta = meanTarget - m_intercept;
         m_intercept = meanTarget;
         m_data.updateResidual(delta);
     }
@@ -171,15 +171,15 @@ final class GlmNet {
     /**
      * @return
      */
-    private float calculateMeanResponse() {
-        float meanResponse = 0;
+    private double calculateMeanResponse() {
+        double meanResponse = 0;
         for (int i = 0; i < m_coefficients.length; i++) {
             meanResponse += m_data.getWeightedMean(i) * m_coefficients[i] / m_data.getStdv(i);
         }
         return meanResponse;
     }
 
-    private static float abs(final float x) {
+    private static double abs(final double x) {
         return x < 0 ? -x : x;
     }
 

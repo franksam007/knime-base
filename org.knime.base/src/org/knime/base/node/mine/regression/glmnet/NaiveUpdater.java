@@ -62,26 +62,26 @@ enum NaiveUpdater implements Updater {
      * {@inheritDoc}
      */
     @Override
-    public float calculateGradient(final DataIterator iterator) {
+    public double calculateGradient(final DataIterator iterator) {
         return calculateResidualProduct(iterator);
     }
 
-    private static void updateResiduals(final DataIterator iter, final float betaDiff) {
-        final float scaledMean = iter.getFeatureMean();
+    private static void updateResiduals(final DataIterator iter, final double betaDiff) {
+        final double scaledMean = iter.getFeatureMean();
         while (iter.next()) {
-            final float oldResidual = iter.getResidual();
-            final float responseDiff = (iter.getFeature() - scaledMean) * betaDiff;
-            final float newResidual = oldResidual - responseDiff;
+            final double oldResidual = iter.getResidual();
+            final double responseDiff = (iter.getFeature() - scaledMean) * betaDiff;
+            final double newResidual = oldResidual - responseDiff;
             iter.setResidual(newResidual);
         }
     }
 
-    private static float calculateResidualProduct(final DataIterator iter) {
-        float sum = 0.0F;
+    private static double calculateResidualProduct(final DataIterator iter) {
+        double sum = 0.0F;
         while (iter.next()) {
-            float weight = iter.getWeight();
-            float scaledValue = iter.getFeature();
-            float residual = iter.getResidual();
+            double weight = iter.getWeight();
+            double scaledValue = iter.getFeature();
+            double residual = iter.getResidual();
             sum += weight * scaledValue * residual;
         }
 //        sum -= iter.getFeatureMean() * iter.getTotalWeightedResidual();
@@ -93,7 +93,7 @@ enum NaiveUpdater implements Updater {
      * {@inheritDoc}
      */
     @Override
-    public void betaChanged(final DataIterator iterator, final float betaDiff) {
+    public void betaChanged(final DataIterator iterator, final double betaDiff) {
         updateResiduals(iterator, betaDiff);
     }
 

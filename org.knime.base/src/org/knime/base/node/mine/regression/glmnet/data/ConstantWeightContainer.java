@@ -54,7 +54,7 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 class ConstantWeightContainer implements WeightContainer {
 
-    private final float m_weight;
+    private final double m_weight;
 
     private final int m_numRows;
 
@@ -67,7 +67,7 @@ class ConstantWeightContainer implements WeightContainer {
      * {@inheritDoc}
      */
     @Override
-    public float get(final int idx) {
+    public double get(final int idx) {
         // avoid unnecessary check (if this becomes a public method replace with proper check)
         assert idx >= 0 && idx < m_numRows : "Index must be in [0, " + m_numRows + ") but was " + idx;
         return m_weight;
@@ -77,7 +77,7 @@ class ConstantWeightContainer implements WeightContainer {
      * {@inheritDoc}
      */
     @Override
-    public float getTotal() {
+    public double getTotal() {
         return 1.0F;
     }
 

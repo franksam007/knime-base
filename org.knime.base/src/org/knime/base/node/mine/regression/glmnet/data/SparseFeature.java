@@ -70,7 +70,7 @@ final class SparseFeature implements Feature {
      * {@inheritDoc}
      */
     @Override
-    public void scale(final float scale) {
+    public void scale(final double scale) {
         m_values.scale(scale);
     }
 
@@ -102,7 +102,7 @@ final class SparseFeature implements Feature {
          * {@inheritDoc}
          */
         @Override
-        public float getValue() {
+        public double getValue() {
             return m_values.get(m_idx);
         }
 

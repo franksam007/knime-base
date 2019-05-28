@@ -56,5 +56,5 @@ public interface LambdaSequence {
 
     int length();
 
-    float get(int step);
+    double get(int step);
 }

@@ -56,7 +56,7 @@ import org.knime.base.node.mine.regression.glmnet.data.DataIterator;
  */
 interface Updater {
 
-    float calculateGradient(final DataIterator iterator);
+    double calculateGradient(final DataIterator iterator);
 
-    void betaChanged(final DataIterator iterator, final float betaDiff);
+    void betaChanged(final DataIterator iterator, final double betaDiff);
 }

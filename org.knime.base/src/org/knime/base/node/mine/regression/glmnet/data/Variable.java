@@ -56,6 +56,6 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 public interface Variable {
 
-    void scale(final float scale);
+    void scale(final double scale);
 
 }

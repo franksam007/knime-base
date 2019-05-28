@@ -56,12 +56,12 @@ import org.knime.core.node.util.CheckUtils;
  */
 final class ArrayLambdaSequence implements LambdaSequence {
 
-    private final float[] m_lambdas;
+    private final double[] m_lambdas;
 
     /**
      *
      */
-    ArrayLambdaSequence(final float[] lambdas) {
+    ArrayLambdaSequence(final double[] lambdas) {
         m_lambdas = lambdas;
     }
 
@@ -77,7 +77,7 @@ final class ArrayLambdaSequence implements LambdaSequence {
      * {@inheritDoc}
      */
     @Override
-    public float get(final int step) {
+    public double get(final int step) {
         CheckUtils.checkArgument(step >= 0, "Non positive step %s", step);
         CheckUtils.checkArgument(step < length(), "The step %s exceeds the maximum %s", step, length());
         return m_lambdas[step];

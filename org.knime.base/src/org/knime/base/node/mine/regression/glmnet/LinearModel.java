@@ -54,23 +54,23 @@ package org.knime.base.node.mine.regression.glmnet;
  */
 public final class LinearModel {
 
-    private final float m_intercept;
+    private final double m_intercept;
 
-    private final float[] m_coefficients;
+    private final double[] m_coefficients;
 
     /**
      *
      */
-    public LinearModel(final float intercept, final float[] coefficients) {
+    public LinearModel(final double intercept, final double[] coefficients) {
         m_intercept = intercept;
         m_coefficients = coefficients.clone();
     }
 
-    public float getIntercept() {
+    public double getIntercept() {
         return m_intercept;
     }
 
-    public float getCoefficient(final int featureIdx) {
+    public double getCoefficient(final int featureIdx) {
         return m_coefficients[featureIdx];
     }
 

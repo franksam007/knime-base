@@ -185,9 +185,9 @@ final class GlmNetNodeModel extends NodeModel {
         throws Exception {
         final BufferedDataTable table = inData[DATA_PORT_IDX];
         final Data data = createData(filterTable(table, exec.createSilentSubExecutionContext(0.0)));
-        final float lambda = (float)m_lambda.getDoubleValue();
-        final float alpha = (float)m_alpha.getDoubleValue();
-        final float epsilon = (float)m_epsilon.getDoubleValue();
+        final double lambda = m_lambda.getDoubleValue();
+        final double alpha = m_alpha.getDoubleValue();
+        final double epsilon = m_epsilon.getDoubleValue();
         final LambdaSequence lambdas = LambdaSequences.lambdaMinLogScale(lambda, m_rounds.getIntValue(), alpha, data);
         final ElasticNet elasticNet = ElasticNets.createElasticNet(data, lambdas, alpha, epsilon,
             m_maxIterations.getIntValue(), m_maxActiveFeatures.getIntValue());
@@ -205,7 +205,7 @@ final class GlmNetNodeModel extends NodeModel {
         return container.getTable();
     }
 
-    private static DataRow toRow(final float lambda, final LinearModel model, final long idx) {
+    private static DataRow toRow(final double lambda, final LinearModel model, final long idx) {
         final double[] values = new double[model.getNumCoefficients() + 2];
         values[0] = lambda;
         values[1] = model.getIntercept();

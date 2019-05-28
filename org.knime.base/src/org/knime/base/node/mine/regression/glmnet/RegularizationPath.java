@@ -60,15 +60,15 @@ import org.knime.base.node.mine.regression.glmnet.lambda.LambdaSequence;
 public final class RegularizationPath <M> {
 
     private final List<M> m_models;
-    private final float[] m_lambdas;
+    private final double[] m_lambdas;
 
     public RegularizationPath(final List<M> models, final LambdaSequence lambdas) {
         m_models = new ArrayList<>(models);
         m_lambdas = getLambdaArray(lambdas, models.size());
     }
 
-    private static float[] getLambdaArray(final LambdaSequence lambdas, final int numEvaluatedLambdas) {
-        final float[] lambdaArray = new float[numEvaluatedLambdas];
+    private static double[] getLambdaArray(final LambdaSequence lambdas, final int numEvaluatedLambdas) {
+        final double[] lambdaArray = new double[numEvaluatedLambdas];
         for (int i = 0; i < numEvaluatedLambdas; i++) {
             lambdaArray[i] = lambdas.get(i);
         }
@@ -79,7 +79,7 @@ public final class RegularizationPath <M> {
         return m_models.size();
     }
 
-    public float getLambda(final int idx) {
+    public double getLambda(final int idx) {
         return m_lambdas[idx];
     }
 

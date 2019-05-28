@@ -65,8 +65,8 @@ public final class ElasticNets {
         // static factory class
     }
 
-    public static ElasticNet createElasticNet(final Data data, final LambdaSequence lambdas, final float alpha,
-        final float epsilon, final int maxIterations, final int maxActiveFeatures) {
+    public static ElasticNet createElasticNet(final Data data, final LambdaSequence lambdas, final double alpha,
+        final double epsilon, final int maxIterations, final int maxActiveFeatures) {
         final GlmNet glmNet = new GlmNet(data, NaiveUpdater.INSTANCE, alpha, epsilon,
             FeatureCycleFactories.createRoundRobinFeaturCycleFactory(data.getNumFeatures()), maxIterations);
         return new ElasticNet(glmNet, lambdas, maxActiveFeatures, epsilon);

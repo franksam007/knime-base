@@ -42,20 +42,20 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
- * 
+ *
  * History
  *   26.05.2019 (Adrian): created
  */
 package org.knime.base.node.mine.regression.glmnet.data;
 
 final class ConstantValueHolder implements ValueHolder {
-    private float m_value;
+    private double m_value;
     private final int m_numValues;
 
     /**
      *
      */
-    public ConstantValueHolder(final float value, final int numValues) {
+    public ConstantValueHolder(final double value, final int numValues) {
         m_value = value;
         m_numValues = numValues;
     }
@@ -64,7 +64,7 @@ final class ConstantValueHolder implements ValueHolder {
      * {@inheritDoc}
      */
     @Override
-    public float get(final int idx) {
+    public double get(final int idx) {
         if (idx < 0 || idx >= m_numValues) {
             throw new IndexOutOfBoundsException();
         }
@@ -83,7 +83,7 @@ final class ConstantValueHolder implements ValueHolder {
      * {@inheritDoc}
      */
     @Override
-    public void scale(final float scale) {
+    public void scale(final double scale) {
         m_value *= scale;
     }
 

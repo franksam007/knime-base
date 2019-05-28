@@ -50,12 +50,12 @@ package org.knime.base.node.mine.regression.glmnet.data;
 
 public interface DataIterator {
     boolean next();
-    float getWeight();
-    float getFeature();
-    float getTarget();
-    float getResidual();
-    float getWeightedResidual();
-    float getFeatureMean();
-    float getTotalWeightedResidual();
-    void setResidual(final float value);
+    double getWeight();
+    double getFeature();
+    double getTarget();
+    double getResidual();
+    double getWeightedResidual();
+    double getFeatureMean();
+    double getTotalWeightedResidual();
+    void setResidual(final double value);
 }

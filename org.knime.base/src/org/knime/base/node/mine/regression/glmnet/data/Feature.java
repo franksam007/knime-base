@@ -59,7 +59,7 @@ interface Feature extends Variable {
     interface FeatureIterator {
         boolean next();
         int getRowIdx();
-        float getValue();
+        double getValue();
     }
 
 }

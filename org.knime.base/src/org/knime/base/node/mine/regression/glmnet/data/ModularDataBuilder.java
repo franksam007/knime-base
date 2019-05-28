@@ -140,7 +140,7 @@ public final class ModularDataBuilder {
         return m_featureBuilders.stream().flatMap(b -> b.build().stream()).toArray(Feature[]::new);
     }
 
-    private float[] getTarget() {
+    private double[] getTarget() {
         final Collection<Feature> targets = m_targetBuilder.build();
         // TODO extend to multiple targets
         CheckUtils.checkState(targets.size() == 1, "Only exactly one target is supported.");
@@ -148,8 +148,8 @@ public final class ModularDataBuilder {
         return toArray(targetFeature);
     }
 
-    private float[] toArray(final Feature feature) {
-        final float[] array = new float[(int)m_table.size()];
+    private double[] toArray(final Feature feature) {
+        final double[] array = new double[(int)m_table.size()];
         final FeatureIterator iter = feature.getIterator();
         while (iter.next()) {
             array[iter.getRowIdx()] = iter.getValue();
@@ -165,10 +165,10 @@ public final class ModularDataBuilder {
         }
     }
 
-    private float[] getWeights() {
+    private double[] getWeights() {
         final Collection<Feature> weights = m_weightBuilder.build();
         CheckUtils.checkState(weights.size() == 1, "Only exactly one weight column is supported.");
-        final float[] weightArray = toArray(weights.iterator().next());
+        final double[] weightArray = toArray(weights.iterator().next());
         float totalWeight = 0.0f;
         for (int i = 0; i < weightArray.length; i++) {
             totalWeight += weightArray[i];

@@ -59,7 +59,7 @@ import org.knime.core.data.DoubleValue;
  */
 final class NumericFeatureBuilder extends AbstractFeatureBuilder<DoubleValue> {
 
-    private final float[] m_values;
+    private final double[] m_values;
     private int m_currentIdx = 0;
 
     /**
@@ -67,7 +67,7 @@ final class NumericFeatureBuilder extends AbstractFeatureBuilder<DoubleValue> {
      */
     public NumericFeatureBuilder(final int colIdx, final int numRows) {
         super(colIdx, DoubleValue.class);
-        m_values = new float[numRows];
+        m_values = new double[numRows];
     }
 
 
@@ -87,7 +87,7 @@ final class NumericFeatureBuilder extends AbstractFeatureBuilder<DoubleValue> {
     @Override
     protected void accept(final DoubleValue value) {
         // TODO check for zeros
-        final float val = (float)value.getDoubleValue();
+        final double val = value.getDoubleValue();
         m_values[m_currentIdx] = val;
         m_currentIdx++;
     }

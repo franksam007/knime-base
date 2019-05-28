@@ -42,19 +42,19 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
- * 
+ *
  * History
  *   26.05.2019 (Adrian): created
  */
 package org.knime.base.node.mine.regression.glmnet.data;
 
 final class ArrayValueHolder implements ValueHolder {
-    private final float[] m_values;
+    private final double[] m_values;
 
     /**
      *
      */
-    ArrayValueHolder(final float[] values) {
+    ArrayValueHolder(final double[] values) {
         m_values = values.clone();
     }
 
@@ -62,7 +62,7 @@ final class ArrayValueHolder implements ValueHolder {
      * {@inheritDoc}
      */
     @Override
-    public float get(final int idx) {
+    public double get(final int idx) {
         return m_values[idx];
     }
 
@@ -78,7 +78,7 @@ final class ArrayValueHolder implements ValueHolder {
      * {@inheritDoc}
      */
     @Override
-    public void scale(final float scale) {
+    public void scale(final double scale) {
         for (int i = 0; i < m_values.length; i++) {
             m_values[i] *= scale;
         }

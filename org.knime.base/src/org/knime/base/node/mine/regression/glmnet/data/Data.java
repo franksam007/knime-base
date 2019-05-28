@@ -50,7 +50,7 @@ package org.knime.base.node.mine.regression.glmnet.data;
 
 /**
  *
- * @author Adrian
+ * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
 public interface Data {
 
@@ -58,22 +58,22 @@ public interface Data {
 
     int getNumFeatures();
 
-    float getTotalWeight();
+    double getTotalWeight();
 
-    float getStdv(int featureIdx);
+    double getStdv(int featureIdx);
 
-    float getWeightedSquaredMean(int featureIdx);
+    double getWeightedSquaredMean(int featureIdx);
 
     DataIterator getIterator(int featureIdx);
 
-    float getWeightedMean(int featureIdx);
+    double getWeightedMean(int featureIdx);
 
-    float getWeightedMeanTarget();
+    double getWeightedMeanTarget();
 
-    float getWeightedInnerFeatureTargetProduct(final int featureIdx);
+    double getWeightedInnerFeatureTargetProduct(final int featureIdx);
 
-    void updateResidual(final float interceptDelta);
+    void updateResidual(final double interceptDelta);
 
-    float getWeightedMeanDiff(final int featureIdx);
+    double getWeightedMeanDiff(final int featureIdx);
 
 }

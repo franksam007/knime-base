@@ -54,6 +54,6 @@ package org.knime.base.node.mine.regression.glmnet.data;
  */
 interface FloatContainer {
 
-    public float get(final int idx);
+    public double get(final int idx);
 
 }
