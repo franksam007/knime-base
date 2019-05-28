@@ -67,10 +67,14 @@ import org.knime.base.node.meta.explain.util.TablePreparer;
 import org.knime.base.node.meta.explain.util.iter.DoubleIterable;
 import org.knime.base.node.meta.explain.util.iter.DoubleIterator;
 import org.knime.base.node.meta.explain.util.iter.IntIterator;
+import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DoubleValue;
+import org.knime.core.data.MissingValue;
+import org.knime.core.data.MissingValueException;
+import org.knime.core.data.RowKey;
 import org.knime.core.data.container.CloseableRowIterator;
 import org.knime.core.data.container.ColumnRearranger;
 import org.knime.core.node.BufferedDataTable;
@@ -100,6 +104,13 @@ final class ShapPredictionConsumer {
     private double[] m_nullFx;
 
     private int m_samplingSetSize;
+
+    /**
+     *
+     */
+    public ShapPredictionConsumer() {
+        // the members are later initialized based on the users configuration and data
+    }
 
     void consumePredictions(final BufferedDataTable predictedTable, final ShapIteration shapIteration,
         final ExecutionContext exec) throws Exception {
@@ -203,7 +214,12 @@ final class ShapPredictionConsumer {
                 sampleIdx++;
             }
             for (int j = 0; j < numPredCols; j++) {
-                aggregatedPredictions[sampleIdx][j] += ((DoubleValue)row.getCell(j)).getDoubleValue() * weight;
+                final DataCell cell = row.getCell(j);
+                if (cell.isMissing()) {
+                    throw new MissingValueException((MissingValue)cell,
+                        "Missing prediction detected in row " + row.getKey());
+                }
+                aggregatedPredictions[sampleIdx][j] += ((DoubleValue)cell).getDoubleValue() * weight;
             }
             i++;
         }
@@ -267,29 +283,36 @@ final class ShapPredictionConsumer {
 
     private void initializeNullPredictions(final BufferedDataTable predictionTable, final ExecutionContext exec)
         throws InvalidSettingsException, CanceledExecutionException, MissingColumnException {
-        // TODO add optional weighting
         final double size = predictionTable.size();
         m_samplingSetSize = getAsInt(predictionTable.size());
 
         long rowIdx = 1;
+        final DoubleIterator weightIter = m_samplingWeights.iterator();
         m_nullFx = new double[m_predictionTablePreparer.getNumColumns()];
         try (final CloseableRowIterator iter = createPredictionIterator(predictionTable, exec)) {
             while (iter.hasNext()) {
                 exec.checkCanceled();
-                DataRow row = iter.next();
+                final DataRow row = iter.next();
+                assert weightIter.hasNext();
+                final double weight = weightIter.next();
                 for (int i = 0; i < m_nullFx.length; i++) {
                     // the prediction table only contains columns that contain double values
-                    m_nullFx[i] += ((DoubleValue)row.getCell(i)).getDoubleValue();
+                    DataCell cell = row.getCell(i);
+                    checkForMissingValues(row.getKey(), cell);
+                    m_nullFx[i] += ((DoubleValue)cell).getDoubleValue() * weight;
                 }
                 exec.setProgress(rowIdx / size);
             }
         }
-        for (int i = 0; i < m_nullFx.length; i++) {
-            m_nullFx[i] /= size;
-        }
-
         // TODO allow different link functions e.g. logit
         m_shapWLS = new ShapWLS(MatrixUtils.createRealVector(m_nullFx), d -> d);
+    }
+
+    private static void checkForMissingValues(final RowKey key, final DataCell cell) {
+        if (cell.isMissing()) {
+            throw new MissingValueException((MissingValue)cell,
+                "Missing prediction in row " + key);
+        }
     }
 
     private CloseableRowIterator createPredictionIterator(final BufferedDataTable samplingTable,
